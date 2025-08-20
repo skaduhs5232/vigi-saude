@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { LucideIcon } from "lucide-react";
 import { 
   Users, 
   Pill, 
@@ -14,8 +15,18 @@ import {
   Bell,
   Activity
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CreateNotificationDialog } from "@/components/notifications/CreateNotificationDialog";
+import { NotifierDialog } from "@/components/notifier/NotifierDialog";
+import { NotificationRecord } from "@/components/notifications/NotificationModule";
+import { Notifier } from "@/components/notifier/NotifierForm";
 
-const quickActions = [
+type QuickAction =
+  | { title: string; description: string; icon: LucideIcon; color: "primary" | "secondary"; action: "create" }
+  | { title: string; description: string; icon: LucideIcon; color: "primary" | "secondary"; action: "notifier" }
+  | { title: string; description: string; icon: LucideIcon; color: "primary" | "secondary"; action: "create-type"; tipo: string };
+
+const quickActions: QuickAction[] = [
   {
     title: "Nova Notificação",
     description: "Registrar nova ocorrência",
@@ -28,21 +39,23 @@ const quickActions = [
     description: "Cadastrar dados do profissional",
     icon: Users,
     color: "secondary",
-    route: "/notificador"
+    action: "notifier"
   },
   {
     title: "Farmacovigilância",
     description: "Reação adversa a medicamento",
     icon: Pill,
     color: "secondary",
-    route: "/farmacovigilancia"
+    action: "create-type",
+    tipo: "Farmacovigilância"
   },
   {
     title: "Tecnovigilância",
     description: "Problema com equipamento",
     icon: Stethoscope,
     color: "secondary",
-    route: "/tecnovigilancia"
+    action: "create-type",
+    tipo: "Tecnovigilância"
   }
 ];
 
@@ -108,6 +121,36 @@ const getStatusIcon = (status: string) => {
 };
 
 export function UserDashboard() {
+  const navigate = useNavigate();
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openNotifier, setOpenNotifier] = useState(false);
+  const [createTipo, setCreateTipo] = useState<string>("Farmacovigilância");
+  const [pendingCreate, setPendingCreate] = useState(false);
+
+  const getSavedNotifier = (): Notifier | null => {
+    try {
+      const raw = localStorage.getItem("notifier");
+      return raw ? (JSON.parse(raw) as Notifier) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const openCreateWithTipo = (tipo: string) => {
+    const hasNotifier = !!getSavedNotifier();
+    if (!hasNotifier) {
+      setPendingCreate(true);
+      setCreateTipo(tipo);
+      setOpenNotifier(true);
+      return;
+    }
+    setCreateTipo(tipo);
+    setOpenCreate(true);
+  };
+  const handleCreate = (rec: NotificationRecord) => {
+    // Aqui poderíamos enviar para API; por hora, apenas feedback
+    console.log("created", rec);
+  };
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -142,6 +185,19 @@ export function UserDashboard() {
               <div
                 key={index}
                 className="group p-6 border rounded-lg hover:shadow-md hover:border-primary/50 transition-all duration-200 cursor-pointer bg-card hover:bg-accent/50"
+                onClick={() => {
+                  switch (action.action) {
+                    case 'create':
+                      openCreateWithTipo("Farmacovigilância");
+                      break;
+                    case 'create-type':
+                      openCreateWithTipo(action.tipo);
+                      break;
+                    case 'notifier':
+                      setOpenNotifier(true);
+                      break;
+                  }
+                }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -164,6 +220,20 @@ export function UserDashboard() {
           </div>
         </CardContent>
       </Card>
+      <CreateNotificationDialog open={openCreate} onOpenChange={setOpenCreate} onSubmit={handleCreate} allowChooseTipo defaultTipo={createTipo} />
+      <NotifierDialog
+        open={openNotifier}
+        onOpenChange={(v) => {
+          setOpenNotifier(v);
+          if (!v && pendingCreate) {
+            const hasNotifier = !!getSavedNotifier();
+            if (hasNotifier) {
+              setOpenCreate(true);
+            }
+            setPendingCreate(false);
+          }
+        }}
+      />
 
       {/* Recent Activity */}
       <div className="grid gap-6 md:grid-cols-3">
