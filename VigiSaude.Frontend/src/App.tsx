@@ -28,7 +28,8 @@ const App = () => (
       <SidebarProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+  {/* basename ensures routes work under GitHub Pages subpath */}
+  <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/notificador" element={<Notificador />} />
