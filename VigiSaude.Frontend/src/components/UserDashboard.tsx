@@ -20,6 +20,9 @@ import { CreateNotificationDialog } from "@/components/notifications/CreateNotif
 import { NotifierDialog } from "@/components/notifier/NotifierDialog";
 import { NotificationRecord } from "@/components/notifications/NotificationModule";
 import { Notifier } from "@/components/notifier/NotifierForm";
+import NotificationCenter, { NotificationItem } from "@/components/notifications/NotificationCenter";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 type QuickAction =
   | { title: string; description: string; icon: LucideIcon; color: "primary" | "secondary"; action: "create" }
@@ -126,6 +129,10 @@ export function UserDashboard() {
   const [openNotifier, setOpenNotifier] = useState(false);
   const [createTipo, setCreateTipo] = useState<string>("Farmacovigilância");
   const [pendingCreate, setPendingCreate] = useState(false);
+  const [openCenter, setOpenCenter] = useState(false);
+  const [openGuide, setOpenGuide] = useState(false);
+  const [openTypes, setOpenTypes] = useState(false);
+  const [openSupport, setOpenSupport] = useState(false);
 
   const getSavedNotifier = (): Notifier | null => {
     try {
@@ -161,7 +168,7 @@ export function UserDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setOpenCenter(true)}>
             <Bell className="w-4 h-4 mr-2" />
             Notificações
           </Button>
@@ -233,6 +240,11 @@ export function UserDashboard() {
             setPendingCreate(false);
           }
         }}
+      />
+      <NotificationCenter
+        open={openCenter}
+        onOpenChange={setOpenCenter}
+        items={recentNotifications as unknown as NotificationItem[]}
       />
 
       {/* Recent Activity */}
@@ -322,17 +334,17 @@ export function UserDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col hover:border-primary/60 hover:bg-accent/30" onClick={() => setOpenGuide(true)}>
               <Users className="w-6 h-6 mb-2" />
               <span className="font-medium">Guia do Usuário</span>
               <span className="text-xs text-muted-foreground">Como usar o sistema</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col hover:border-primary/60 hover:bg-accent/30" onClick={() => setOpenTypes(true)}>
               <Activity className="w-6 h-6 mb-2" />
               <span className="font-medium">Tipos de Notificação</span>
               <span className="text-xs text-muted-foreground">Saiba quando notificar</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col hover:border-primary/60 hover:bg-accent/30" onClick={() => setOpenSupport(true)}>
               <Bell className="w-6 h-6 mb-2" />
               <span className="font-medium">Suporte</span>
               <span className="text-xs text-muted-foreground">Entre em contato</span>
@@ -340,6 +352,81 @@ export function UserDashboard() {
           </div>
         </CardContent>
       </Card>
+      {/* Dialog: Guia do Usuário */}
+      <Dialog open={openGuide} onOpenChange={setOpenGuide}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Guia do Usuário</DialogTitle>
+            <DialogDescription>Passos rápidos para usar o VigiSaúde</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm leading-relaxed">
+            <div>
+              <p className="font-medium">1. Cadastre o Notificador</p>
+              <p className="text-muted-foreground">Acesse “Identificar Notificador” no painel ou no menu lateral.</p>
+            </div>
+            <div>
+              <p className="font-medium">2. Crie sua Notificação</p>
+              <p className="text-muted-foreground">Abra “Nova Notificação” pelo painel ou dentro do módulo correspondente.</p>
+            </div>
+            <div>
+              <p className="font-medium">3. Acompanhe pelo Centro de Notificações</p>
+              <p className="text-muted-foreground">Clique no sino do topo para ver pendências e status.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Tipos de Notificação */}
+      <Dialog open={openTypes} onOpenChange={setOpenTypes}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Tipos de Notificação</DialogTitle>
+            <DialogDescription>Quando e onde notificar</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="p-3 rounded-lg border bg-card">
+              <p className="font-medium">Farmacovigilância</p>
+              <p className="text-muted-foreground">Reações adversas a medicamentos.</p>
+            </div>
+            <div className="p-3 rounded-lg border bg-card">
+              <p className="font-medium">Tecnovigilância</p>
+              <p className="text-muted-foreground">Falhas/dispositivos e tecnologias em saúde.</p>
+            </div>
+            <div className="p-3 rounded-lg border bg-card">
+              <p className="font-medium">Hemovigilância</p>
+              <p className="text-muted-foreground">Eventos hemotransfusionais.</p>
+            </div>
+            <div className="p-3 rounded-lg border bg-card">
+              <p className="font-medium">Processo de Cuidado</p>
+              <p className="text-muted-foreground">Queda, flebite, LPP, úlcera de córnea, etc.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Suporte */}
+      <Dialog open={openSupport} onOpenChange={setOpenSupport}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Suporte</DialogTitle>
+            <DialogDescription>Entre em contato com nossa equipe</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <span>Email</span>
+              <a className="text-primary hover:underline" href="mailto:suporte@vigisaude.local">suporte@vigisaude.local</a>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <span>Telefone</span>
+              <a className="text-primary hover:underline" href="tel:+55000000000">(00) 0000-0000</a>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <span>Central de Ajuda</span>
+              <a className="text-primary hover:underline" href="#">Abrir artigos</a>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
