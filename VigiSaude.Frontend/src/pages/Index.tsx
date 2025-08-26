@@ -10,10 +10,10 @@ const Index = () => {
     return <ProfileSelector onSelectProfile={setSelectedProfile} />;
   }
   return <div className="min-h-screen w-full flex bg-background">
-      <HealthWatchSidebar />
+      {selectedProfile === 'admin' && <HealthWatchSidebar />}
       
       <div className="flex-1 flex flex-col">
-        <header className="h-14 flex items-center border-b bg-card px-4">
+  <header className="h-14 flex items-center border-b bg-card px-4">
           
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold">HealthWatch</h1>
