@@ -16,7 +16,7 @@ export function ProfileSelector({ onSelectProfile }: ProfileSelectorProps) {
             <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
               <ShieldCheck className="w-7 h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">HealthWatch</h1>
+            <h1 className="text-3xl font-bold text-foreground">VigiSaúde</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Sistema de Vigilância Sanitária Hospitalar - Selecione seu perfil de acesso

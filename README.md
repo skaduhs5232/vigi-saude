@@ -1,10 +1,10 @@
-# VigiSaude - Sistema de Vigilância Sanitária Hospitalar
+# VigiSaúde - Sistema de Vigilância Sanitária Hospitalar
 
 Sistema web para gestão de notificações de vigilância sanitária em hospitais, focado na melhoria da qualidade e segurança assistencial.
 
 ## 📋 Sobre o Projeto
 
-O VigiSaude é uma plataforma desenvolvida para facilitar o registro, acompanhamento e análise de notificações de vigilância sanitária em ambiente hospitalar. O sistema permite o gerenciamento de diferentes tipos de eventos relacionados à segurança do paciente.
+O VigiSaúde é uma plataforma desenvolvida para facilitar o registro, acompanhamento e análise de notificações de vigilância sanitária em ambiente hospitalar. O sistema permite o gerenciamento de diferentes tipos de eventos relacionados à segurança do paciente.
 
 ### Modalidades de Vigilância
 
