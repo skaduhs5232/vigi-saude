@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 type FieldBase = { id: string; label: string; required?: boolean };
 type TextField = FieldBase & { type: "text" };
@@ -170,6 +171,8 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editNotificationId, setEditNotificationId] = useState<string | number | null>(null);
   const [notificadorNome, setNotificadorNome] = useState<string>("");
   const [notificadorEmail, setNotificadorEmail] = useState<string>("");
   const [notificadorTelefone, setNotificadorTelefone] = useState<string>("");
@@ -185,17 +188,104 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacientePeso, setPacientePeso] = useState("");
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
 
+  // Carregar dados de edição se disponíveis
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("notifier");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.nome) setNotificadorNome(parsed.nome as string);
+      const editData = localStorage.getItem("editNotificationData");
+      if (editData) {
+        const parsed = JSON.parse(editData);
+        if (parsed.isEdit) {
+          setIsEditMode(true);
+          setEditNotificationId(parsed.notificationId);
+          
+          // Carregar dados do formulário
+          if (parsed.dadosFormulario) {
+            setForm(parsed.dadosFormulario);
+          }
+          
+          // Carregar dados do paciente
+          if (parsed.dadosPaciente) {
+            const p = parsed.dadosPaciente;
+            if (p.nome) setPacienteNome(p.nome);
+            if (p.prontuario) setPacienteProntuario(p.prontuario);
+            if (p.setor) setPacienteSetor(p.setor);
+            if (p.leito) setPacienteLeito(p.leito);
+            if (p.sexo) setPacienteSexo(p.sexo);
+            if (p.peso) setPacientePeso(p.peso);
+            if (p.dataNascimento) setPacienteDataNascimento(p.dataNascimento);
+          }
+          
+          // Carregar dados do notificador
+          if (parsed.dadosNotificador) {
+            const n = parsed.dadosNotificador;
+            if (n.nome) setNotificadorNome(n.nome);
+            if (n.email) setNotificadorEmail(n.email);
+            if (n.telefone) setNotificadorTelefone(n.telefone);
+            if (n.tipo) setNotificadorTipo(n.tipo);
+            if (n.setor) setNotificadorSetor(n.setor);
+            if (n.categoria) setNotificadorCategoria(n.categoria);
+          }
+          
+          // Remover dados de edição após carregar
+          localStorage.removeItem("editNotificationData");
+        }
       }
     } catch {
       // ignore
     }
   }, []);
+
+  // Salvar dados do notificador no cache quando alterados
+  useEffect(() => {
+    const notificadorData = {
+      nome: notificadorNome,
+      email: notificadorEmail,
+      telefone: notificadorTelefone,
+      tipo: notificadorTipo,
+      setor: notificadorSetor,
+      categoria: notificadorCategoria,
+    };
+    
+    const hasData = Object.values(notificadorData).some(value => value.trim() !== "");
+    if (hasData) {
+      localStorage.setItem("lastNotificadorData", JSON.stringify(notificadorData));
+    }
+  }, [notificadorNome, notificadorEmail, notificadorTelefone, notificadorTipo, notificadorSetor, notificadorCategoria]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("lastNotificadorData");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (!notificadorNome && parsed.nome) setNotificadorNome(parsed.nome);
+        if (!notificadorEmail && parsed.email) setNotificadorEmail(parsed.email);
+        if (!notificadorTelefone && parsed.telefone) setNotificadorTelefone(parsed.telefone);
+        if (!notificadorTipo && parsed.tipo) setNotificadorTipo(parsed.tipo);
+        if (!notificadorSetor && parsed.setor) setNotificadorSetor(parsed.setor);
+        if (!notificadorCategoria && parsed.categoria) setNotificadorCategoria(parsed.categoria);
+      }
+    } catch {
+      // ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const carregarUltimosDados = () => {
+    try {
+      const raw = localStorage.getItem("lastNotificadorData");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setNotificadorNome(parsed.nome || "");
+        setNotificadorEmail(parsed.email || "");
+        setNotificadorTelefone(parsed.telefone || "");
+        setNotificadorTipo(parsed.tipo || "");
+        setNotificadorSetor(parsed.setor || "");
+        setNotificadorCategoria(parsed.categoria || "");
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const set = (id: string, value: unknown) => setForm((p) => ({ ...p, [id]: value }));
   const valAsStr = (id: string): string => {
@@ -203,8 +293,41 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     return v === undefined || v === null ? "" : String(v);
   };
 
+  // Mapear IDs dos campos para nomes legíveis
+  const getFieldDisplayName = (fieldId: string): string => {
+    const fieldMap: Record<string, string> = {
+      // Campos do paciente
+      "pacienteNome": "Nome do paciente",
+      "pacienteProntuario": "Prontuário do paciente", 
+      "pacienteSetor": "Setor do paciente",
+      "pacienteSexo": "Sexo do paciente",
+      "pacienteDataNascimento": "Data de nascimento do paciente",
+      
+      // Campos do notificador
+      "notificadorNome": "Nome do notificador",
+      "notificadorSetor": "Setor do notificador",
+      "notificadorCategoria": "Categoria profissional do notificador",
+      "notificadorTipo": "Tipo de notificador",
+      
+      // Campos específicos de incidentes
+      "descricaoEfeitos": "Descrição dos efeitos",
+    };
+
+    // Se o campo está no mapa, retorna o nome amigável
+    if (fieldMap[fieldId]) return fieldMap[fieldId];
+
+    // Para campos do schema, busca o label
+    const field = schema.fields.find(f => f.id === fieldId);
+    if (field) return field.label;
+
+    // Fallback: retorna o ID formatado
+    return fieldId.replace(/([A-Z])/g, ' $1').toLowerCase();
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
+    const missingFields: string[] = [];
+
     for (const f of schema.fields) {
       // pular campos condicionais invisíveis
       if (!showField(f)) continue;
@@ -212,6 +335,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         const v = form[f.id];
         if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) {
           e[f.id] = "Campo obrigatório";
+          missingFields.push(getFieldDisplayName(f.id));
         }
       }
       if (f.type === "number") {
@@ -225,31 +349,132 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       }
     }
     // Validações do Notificador
-    if (!notificadorNome) e["notificadorNome"] = "Campo obrigatório";
-    if (!notificadorSetor) e["notificadorSetor"] = "Campo obrigatório";
-    if (!notificadorCategoria) e["notificadorCategoria"] = "Campo obrigatório";
-    if (!notificadorTipo) e["notificadorTipo"] = "Campo obrigatório";
+    if (!notificadorNome) {
+      e["notificadorNome"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("notificadorNome"));
+    }
+    if (!notificadorSetor) {
+      e["notificadorSetor"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("notificadorSetor"));
+    }
+    if (!notificadorCategoria) {
+      e["notificadorCategoria"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("notificadorCategoria"));
+    }
+    if (!notificadorTipo) {
+      e["notificadorTipo"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("notificadorTipo"));
+    }
     // Paciente
-    if (!pacienteNome) e["pacienteNome"] = "Campo obrigatório";
-    if (!pacienteProntuario) e["pacienteProntuario"] = "Campo obrigatório";
-    if (!pacienteSetor) e["pacienteSetor"] = "Campo obrigatório";
-    if (!pacienteSexo) e["pacienteSexo"] = "Campo obrigatório";
-    if (!pacienteDataNascimento) e["pacienteDataNascimento"] = "Campo obrigatório";
+    if (!pacienteNome) {
+      e["pacienteNome"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("pacienteNome"));
+    }
+    if (!pacienteProntuario) {
+      e["pacienteProntuario"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("pacienteProntuario"));
+    }
+    if (!pacienteSetor) {
+      e["pacienteSetor"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("pacienteSetor"));
+    }
+    if (!pacienteSexo) {
+      e["pacienteSexo"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("pacienteSexo"));
+    }
+    if (!pacienteDataNascimento) {
+      e["pacienteDataNascimento"] = "Campo obrigatório";
+      missingFields.push(getFieldDisplayName("pacienteDataNascimento"));
+    }
     // Condicional: descricaoEfeitos obrigatória se efeitoNocivo = 'Sim'
     if (form["efeitoNocivo"] === "Sim") {
       const v = form["descricaoEfeitos"];
-      if (!v) e["descricaoEfeitos"] = "Campo obrigatório";
+      if (!v) {
+        e["descricaoEfeitos"] = "Campo obrigatório";
+        missingFields.push(getFieldDisplayName("descricaoEfeitos"));
+      }
     }
+
     setErrors(e);
+
+    // Se há campos faltando, mostra toast com os campos
+    if (missingFields.length > 0) {
+      const message = missingFields.length === 1 
+        ? `Campo obrigatório: ${missingFields[0]}`
+        : `Campos obrigatórios faltando: ${missingFields.join(", ")}`;
+      
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+
     return Object.keys(e).length === 0;
   };
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    
+    // Dados completos para salvar
+    const dadosCompletos = {
+      modalidade,
+      dadosFormulario: form,
+      dadosPaciente: {
+        nome: pacienteNome,
+        prontuario: pacienteProntuario,
+        setor: pacienteSetor,
+        leito: pacienteLeito,
+        sexo: pacienteSexo,
+        peso: pacientePeso,
+        dataNascimento: pacienteDataNascimento,
+      },
+      dadosNotificador: {
+        nome: notificadorNome,
+        email: notificadorEmail,
+        telefone: notificadorTelefone,
+        tipo: notificadorTipo,
+        setor: notificadorSetor,
+        categoria: notificadorCategoria,
+      },
+    };
+    
+    // Toast de sucesso com mensagem diferente para edição
+    const mensagem = isEditMode 
+      ? `Notificação #${editNotificationId} atualizada com sucesso!`
+      : "Formulário salvo com sucesso!";
+      
+    toast.success(mensagem, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+    
     // Aqui poderíamos enviar para API. Por enquanto apenas log.
-    console.log({ modalidade, data: form });
-    navigate(-1);
+    if (isEditMode) {
+      console.log({ 
+        action: "update", 
+        notificationId: editNotificationId, 
+        modalidade, 
+        data: dadosCompletos 
+      });
+    } else {
+      console.log({ 
+        action: "create", 
+        modalidade, 
+        data: dadosCompletos 
+      });
+    }
+    
+    // Navegar de volta após um pequeno delay para mostrar o toast
+    setTimeout(() => navigate(-1), 1500);
   };
 
   const isSelected = (id: string, value: string) => Array.isArray(form[id]) && form[id].includes(value);
@@ -262,7 +487,6 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
   const shouldRenderChild = (parentId: string, cond: string) => Array.isArray(form[parentId]) && form[parentId].includes(cond);
 
-  // Exibe rótulos mais legíveis para opções como "semRegistro" e similares
   const prettyLabel = (s: string) => {
     const map: Record<string, string> = {
       semRegistro: "Sem registro",
@@ -273,7 +497,6 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       noite: "Noite",
     };
     if (map[s]) return map[s];
-    // tenta separar camelCase e substituir separadores comuns
     const spaced = s
       .replace(/[-_]/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -413,8 +636,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       <main className="mx-auto max-w-6xl p-4 md:p-6">
         <Card>
           <CardHeader className="sticky top-0 z-10 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b">
-            <CardTitle className="text-xl md:text-2xl">{schema.title}</CardTitle>
-            <CardDescription>Preencha os dados da notificação</CardDescription>
+            <CardTitle className="text-xl md:text-2xl">
+              {isEditMode ? `Editar ${schema.title} #${editNotificationId}` : schema.title}
+            </CardTitle>
+            <CardDescription>
+              {isEditMode ? 'Atualize os dados da notificação' : 'Preencha os dados da notificação'}
+            </CardDescription>
           </CardHeader>
           <form onSubmit={onSubmit}>
             <CardContent className="grid gap-8">
@@ -502,9 +729,20 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
               {/* Seção: Dados do Notificador */}
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold">Dados do notificador</h3>
-                  <p className="text-sm text-muted-foreground">Informe seus dados (todos opcionais, exceto o vínculo com a gerência de risco)</p>
+                <div className="md:col-span-2 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Dados do notificador</h3>
+                    <p className="text-sm text-muted-foreground">Informe seus dados (todos opcionais, exceto o vínculo com a gerência de risco)</p>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={carregarUltimosDados}
+                    className="shrink-0"
+                  >
+                    Últimos dados
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notificadorNome">Nome</Label>
@@ -576,7 +814,9 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                 <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Salvar</Button>
+                <Button type="submit">
+                  {isEditMode ? 'Atualizar' : 'Salvar'}
+                </Button>
               </div>
             </CardFooter>
           </form>

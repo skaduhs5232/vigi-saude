@@ -55,7 +55,10 @@ export function HealthWatchSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           {!collapsed && (
-            <div className="flex items-center gap-2">
+            <NavLink 
+              to="/admin" 
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5 text-primary-foreground" />
               </div>
@@ -63,7 +66,17 @@ export function HealthWatchSidebar() {
                 <h2 className="font-semibold text-sm">vigi saúde</h2>
                 <p className="text-xs text-muted-foreground">Vigilância Sanitária</p>
               </div>
-            </div>
+            </NavLink>
+          )}
+          {collapsed && (
+            <NavLink 
+              to="/admin" 
+              className="flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-primary-foreground" />
+              </div>
+            </NavLink>
           )}
           <SidebarTrigger className="ml-auto" />
         </div>

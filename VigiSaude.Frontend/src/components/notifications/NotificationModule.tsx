@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,26 @@ export type NotificationRecord = {
   severidade: "baixa" | "media" | "alta";
   status: "pendente" | "investigacao" | "resolvida";
   data: string; // ISO string ou data legível
+  // Dados específicos dos formulários
+  modalidade?: string; // ex: "reacao-adversa", "erro-medicacao", "queda", etc.
+  dadosFormulario?: Record<string, unknown>; // dados do formulário preenchido
+  dadosPaciente?: {
+    nome?: string;
+    prontuario?: string;
+    setor?: string;
+    leito?: string;
+    sexo?: string;
+    peso?: string;
+    dataNascimento?: string;
+  };
+  dadosNotificador?: {
+    nome?: string;
+    email?: string;
+    telefone?: string;
+    tipo?: string;
+    setor?: string;
+    categoria?: string;
+  };
 };
 
 export type NotificationModuleProps = {
@@ -32,6 +53,7 @@ export type NotificationModuleProps = {
 };
 
 export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdicionar }: NotificationModuleProps) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [filtroSeveridade, setFiltroSeveridade] = useState<string>("todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -44,6 +66,40 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
   const [openEdit, setOpenEdit] = useState(false);
   const [editSeveridade, setEditSeveridade] = useState<NotificationRecord["severidade"]>("baixa");
   const [editStatus, setEditStatus] = useState<NotificationRecord["status"]>("pendente");
+
+  // Mapear tipos de notificação para modalidades de formulário
+  const getModalidadeFromTipo = (tipo: string): string => {
+    const tipoMap: Record<string, string> = {
+      "Farmacovigilância": "reacao-adversa",
+      "Reação adversa a medicamento": "reacao-adversa", 
+      "Erro de medicação": "erro-medicacao",
+      "Erros de medicação": "erro-medicacao",
+      "Flebite": "flebite",
+      "Queda": "queda",
+      "Lesão por pressão": "lesao-pressao",
+    };
+    
+    return tipoMap[tipo] || "padrao";
+  };
+
+  // Função para editar notificação - navegar para formulário
+  const editarNotificacao = (notificacao: NotificationRecord) => {
+    const modalidade = notificacao.modalidade || getModalidadeFromTipo(notificacao.tipo);
+    
+    // Salvar dados da notificação no localStorage para carregar no formulário
+    const dadosEdicao = {
+      isEdit: true,
+      notificationId: notificacao.id,
+      dadosFormulario: notificacao.dadosFormulario || {},
+      dadosPaciente: notificacao.dadosPaciente || {},
+      dadosNotificador: notificacao.dadosNotificador || {},
+    };
+    
+    localStorage.setItem("editNotificationData", JSON.stringify(dadosEdicao));
+    
+    // Navegar para o formulário
+    navigate(`/form/${modalidade}`);
+  };
 
   const filtrados = useMemo(() => {
     return rows.filter((d) => {
@@ -291,7 +347,7 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
                         </div>
                       </DialogContent>
                     </Dialog>
-                    <Button size="sm" variant="ghost" className="ml-2 gap-1" onClick={() => { setEditRecord(d); setOpenEdit(true); }}>
+                    <Button size="sm" variant="ghost" className="ml-2 gap-1" onClick={() => editarNotificacao(d)}>
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
                   </TableCell>
