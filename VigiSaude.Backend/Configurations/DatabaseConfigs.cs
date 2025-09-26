@@ -23,7 +23,7 @@ public static class DatabaseConfigs
         builder.Services.AddDbContext<AuthDbContext>(options =>
             options.UseMySql(connection, serverVersion));
 
-        builder.Services.AddDbContext<VigiSaudeContext>(options =>
+        builder.Services.AddDbContext<VigisaudeDbContext>(options =>
             options.UseMySql(connection, serverVersion));
 
         return builder;
