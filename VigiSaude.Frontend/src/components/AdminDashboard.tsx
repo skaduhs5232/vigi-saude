@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
@@ -12,6 +13,10 @@ import {
   Clock,
   Activity
 } from "lucide-react";
+import { CreateNotificationDialog } from "@/components/notifications/CreateNotificationDialog";
+import { NotifierDialog } from "@/components/notifier/NotifierDialog";
+import { Notifier } from "@/components/notifier/NotifierForm";
+import { NotificationRecord } from "@/components/notifications/NotificationModule";
 
 const dashboardStats = [
   {
@@ -110,6 +115,34 @@ const getStatusIcon = (status: string) => {
 };
 
 export function AdminDashboard() {
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openNotifier, setOpenNotifier] = useState(false);
+  const [createTipo, setCreateTipo] = useState<string>("Farmacovigilância");
+  const [pendingCreate, setPendingCreate] = useState(false);
+
+  const getSavedNotifier = (): Notifier | null => {
+    try {
+      const raw = localStorage.getItem("notifier");
+      return raw ? (JSON.parse(raw) as Notifier) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const openCreateWithTipo = (tipo: string) => {
+    const hasNotifier = !!getSavedNotifier();
+    if (!hasNotifier) {
+      setPendingCreate(true);
+      setCreateTipo(tipo);
+      setOpenNotifier(true);
+      return;
+    }
+    setCreateTipo(tipo);
+    setOpenCreate(true);
+  };
+  const handleCreate = (rec: NotificationRecord) => {
+    console.log("created", rec);
+  };
   return (
     <div className="flex-1 space-y-6 p-6">
       <div>
@@ -218,22 +251,27 @@ export function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={() => { openCreateWithTipo("Farmacovigilância"); }}>
+              <Activity className="w-8 h-8 mb-2 text-primary" />
+              <h3 className="font-medium">Nova Notificação</h3>
+              <p className="text-xs text-muted-foreground">Criar registro rápido</p>
+            </div>
+            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={() => setOpenNotifier(true)}>
               <Users className="w-8 h-8 mb-2 text-primary" />
               <h3 className="font-medium">Notificador</h3>
               <p className="text-xs text-muted-foreground">Identificar notificador</p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={() => { openCreateWithTipo("Farmacovigilância"); }}>
               <Pill className="w-8 h-8 mb-2 text-primary" />
               <h3 className="font-medium">Farmacovigilância</h3>
               <p className="text-xs text-muted-foreground">Nova reação adversa</p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={() => { openCreateWithTipo("Tecnovigilância"); }}>
               <Stethoscope className="w-8 h-8 mb-2 text-primary" />
               <h3 className="font-medium">Tecnovigilância</h3>
               <p className="text-xs text-muted-foreground">Evento técnico</p>
             </div>
-            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <div className="p-4 border rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={() => { openCreateWithTipo("Erros de Medicação"); }}>
               <AlertTriangle className="w-8 h-8 mb-2 text-primary" />
               <h3 className="font-medium">Processo Cuidado</h3>
               <p className="text-xs text-muted-foreground">Evento assistencial</p>
@@ -241,6 +279,20 @@ export function AdminDashboard() {
           </div>
         </CardContent>
       </Card>
+  <CreateNotificationDialog open={openCreate} onOpenChange={setOpenCreate} onSubmit={handleCreate} allowChooseTipo defaultTipo={createTipo} />
+  <NotifierDialog 
+    open={openNotifier}
+    onOpenChange={(v) => {
+      setOpenNotifier(v);
+      if (!v && pendingCreate) {
+        const hasNotifier = !!getSavedNotifier();
+        if (hasNotifier) {
+          setOpenCreate(true);
+        }
+        setPendingCreate(false);
+      }
+    }}
+  />
     </div>
   );
 }
