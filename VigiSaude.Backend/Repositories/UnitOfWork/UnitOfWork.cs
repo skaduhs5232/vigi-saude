@@ -4,10 +4,10 @@ namespace VigiSaude.Backend.Repositories.UnitOfWork;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly VigiSaudeContext _context;
+    private readonly VigisaudeDbContext _context;
 
 
-    public UnitOfWork(VigiSaudeContext context)
+    public UnitOfWork(VigisaudeDbContext context)
     {
         _context = context;
     }

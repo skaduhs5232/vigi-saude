@@ -4,7 +4,7 @@ using VigiSaude.Backend.Data;
 
 namespace VigiSaude.Backend.Repositories.Generic;
 
-public class GenericRepository<T>(VigiSaudeContext context) : IGenericRepository<T> where T : class
+public class GenericRepository<T>(VigisaudeDbContext context) : IGenericRepository<T> where T : class
 {
 
     public void Add(T entity)
