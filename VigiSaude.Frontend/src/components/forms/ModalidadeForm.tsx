@@ -8,6 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { 
+  criarNotificacaoLesaoPressao
+} from "./services/lesao-pressao.service";
+import { criarNotificacaoQueda } from "./services/queda.service";
+import { criarNotificacaoFlebite } from "./services/flebite.service";
+import { criarNotificacaoReacaoAdversa } from "./services/reacao-adversa.service";
+import { criarNotificacaoErroMedicacao } from "./services/erro-medicacao.service";
+import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
 
 type FieldBase = { id: string; label: string; required?: boolean };
 type TextField = FieldBase & { type: "text" };
@@ -23,7 +31,6 @@ type Field = TextField | NumberField | DateField | TimeField | TextareaField | R
 
 export type ModalidadeSchema = { title: string; fields: Field[] };
 
-// Opções compartilhadas do JSON de referência
 const setoresOptions = ["Emergência Unidade 24h", "Emergência unidade de retaguarda", "Emergência obstétrica", "UTI", "Clínica cirúrgica", "Clínica médica", "Clínica pediátrica", "Clínica gineco-obstetrica", "CPN", "Centro cirúrgico", "Neonatologia", "Canguru", "Centro de imagem", "Laboratório", "Farmácia", "Transporte"];
 const categoriaProfOptions = ["Médico", "Enfermeiro", "Farmacêutico", "Dentista", "Outros"];
 const sexoOptions = ["M", "F", "Desconhecido"];
@@ -171,8 +178,6 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editNotificationId, setEditNotificationId] = useState<string | number | null>(null);
   const [notificadorNome, setNotificadorNome] = useState<string>("");
   const [notificadorEmail, setNotificadorEmail] = useState<string>("");
   const [notificadorTelefone, setNotificadorTelefone] = useState<string>("");
@@ -188,54 +193,8 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacientePeso, setPacientePeso] = useState("");
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
 
-  // Carregar dados de edição se disponíveis
-  useEffect(() => {
-    try {
-      const editData = localStorage.getItem("editNotificationData");
-      if (editData) {
-        const parsed = JSON.parse(editData);
-        if (parsed.isEdit) {
-          setIsEditMode(true);
-          setEditNotificationId(parsed.notificationId);
-          
-          // Carregar dados do formulário
-          if (parsed.dadosFormulario) {
-            setForm(parsed.dadosFormulario);
-          }
-          
-          // Carregar dados do paciente
-          if (parsed.dadosPaciente) {
-            const p = parsed.dadosPaciente;
-            if (p.nome) setPacienteNome(p.nome);
-            if (p.prontuario) setPacienteProntuario(p.prontuario);
-            if (p.setor) setPacienteSetor(p.setor);
-            if (p.leito) setPacienteLeito(p.leito);
-            if (p.sexo) setPacienteSexo(p.sexo);
-            if (p.peso) setPacientePeso(p.peso);
-            if (p.dataNascimento) setPacienteDataNascimento(p.dataNascimento);
-          }
-          
-          // Carregar dados do notificador
-          if (parsed.dadosNotificador) {
-            const n = parsed.dadosNotificador;
-            if (n.nome) setNotificadorNome(n.nome);
-            if (n.email) setNotificadorEmail(n.email);
-            if (n.telefone) setNotificadorTelefone(n.telefone);
-            if (n.tipo) setNotificadorTipo(n.tipo);
-            if (n.setor) setNotificadorSetor(n.setor);
-            if (n.categoria) setNotificadorCategoria(n.categoria);
-          }
-          
-          // Remover dados de edição após carregar
-          localStorage.removeItem("editNotificationData");
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
 
-  // Salvar dados do notificador no cache quando alterados
+
   useEffect(() => {
     const notificadorData = {
       nome: notificadorNome,
@@ -386,7 +345,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       e["pacienteDataNascimento"] = "Campo obrigatório";
       missingFields.push(getFieldDisplayName("pacienteDataNascimento"));
     }
-    // Condicional: descricaoEfeitos obrigatória se efeitoNocivo = 'Sim'
+
     if (form["efeitoNocivo"] === "Sim") {
       const v = form["descricaoEfeitos"];
       if (!v) {
@@ -397,7 +356,6 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
     setErrors(e);
 
-    // Se há campos faltando, mostra toast com os campos
     if (missingFields.length > 0) {
       const message = missingFields.length === 1 
         ? `Campo obrigatório: ${missingFields[0]}`
@@ -416,65 +374,245 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     return Object.keys(e).length === 0;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     
-    // Dados completos para salvar
-    const dadosCompletos = {
-      modalidade,
-      dadosFormulario: form,
-      dadosPaciente: {
-        nome: pacienteNome,
-        prontuario: pacienteProntuario,
-        setor: pacienteSetor,
-        leito: pacienteLeito,
-        sexo: pacienteSexo,
-        peso: pacientePeso,
-        dataNascimento: pacienteDataNascimento,
-      },
-      dadosNotificador: {
-        nome: notificadorNome,
-        email: notificadorEmail,
-        telefone: notificadorTelefone,
-        tipo: notificadorTipo,
-        setor: notificadorSetor,
-        categoria: notificadorCategoria,
-      },
+    const dadosPaciente: DadosPaciente = {
+      nome: pacienteNome,
+      prontuario: pacienteProntuario,
+      setor: pacienteSetor,
+      leito: pacienteLeito,
+      sexo: pacienteSexo,
+      peso: pacientePeso,
+      dataNascimento: pacienteDataNascimento,
     };
-    
-    // Toast de sucesso com mensagem diferente para edição
-    const mensagem = isEditMode 
-      ? `Notificação #${editNotificationId} atualizada com sucesso!`
-      : "Formulário salvo com sucesso!";
-      
-    toast.success(mensagem, {
+
+    const dadosNotificador: DadosNotificador = {
+      nome: notificadorNome,
+      email: notificadorEmail,
+      telefone: notificadorTelefone,
+      tipo: notificadorTipo,
+      setor: notificadorSetor,
+      categoria: notificadorCategoria,
+    };
+
+    toast.info("Criando notificação...", {
       position: "top-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
+      autoClose: 2000,
     });
-    
-    // Aqui poderíamos enviar para API. Por enquanto apenas log.
-    if (isEditMode) {
-      console.log({ 
-        action: "update", 
-        notificationId: editNotificationId, 
-        modalidade, 
-        data: dadosCompletos 
-      });
-    } else {
-      console.log({ 
-        action: "create", 
-        modalidade, 
-        data: dadosCompletos 
+
+    try {
+      let resultado;
+
+      if (modalidade === "lesao-pressao") {
+        const payload = {
+          dadosLesaoPressao: {
+            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
+            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
+            dataAdmissao: String(form.dataAdmissao || ''),
+            dataPrimeiraAvaliacao: String(form.dataPrimeiraAvaliacao || ''),
+            classificacaoRiscoBraden: String(form.classificacaoRiscoBraden || ''),
+            totalEscores: Number(form.totalEscores) || 0,
+            reavaliacao48h: String(form.reavaliacao48h || ''),
+            mobilidadePrejudicada: String(form.mobilidadePrejudicada || ''),
+            avaliacaoPor: String(form.avaliacaoPor || ''),
+            registroBradenSAE: String(form.registroBradenSAE || ''),
+            registroMobilidadeSAE: String(form.registroMobilidadeSAE || ''),
+            mudancaDecubito: String(form.mudancaDecubito || ''),
+            intervaloMudanca: String(form.intervaloMudanca || ''),
+            tempoInternacaoLesao: String(form.tempoInternacaoLesao || ''),
+            localLesao: Array.isArray(form.localLesao) ? form.localLesao as string[] : [],
+            estagioLesao: String(form.estagioLesao || ''),
+            usoColchaoDinamico: String(form.usoColchaoDinamico || ''),
+            avaliacaoNutricionista: String(form.avaliacaoNutricionista || ''),
+            registroAvaliacaoNutricional: String(form.registroAvaliacaoNutricional || ''),
+            registroAvaliacaoFisioterapia: String(form.registroAvaliacaoFisioterapia || ''),
+            registroIncidenteEnfermagem: String(form.registroIncidenteEnfermagem || ''),
+            usoCoberturaAdequada: String(form.usoCoberturaAdequada || '')
+          },
+          dadosPaciente,
+          dadosNotificador
+        };
+        resultado = await criarNotificacaoLesaoPressao(payload);
+
+      } else if (modalidade === "queda") {
+        const payload = {
+          dadosQueda: {
+            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
+            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
+            dataAdmissao: String(form.dataAdmissao || ''),
+            diagnostico: String(form.diagnostico || ''),
+            avaliacaoRiscoAdmissao: String(form.avaliacaoRiscoAdmissao || ''),
+            registroOrientacao: String(form.registroOrientacao || ''),
+            riscoQuedaIdentificado: String(form.riscoQuedaIdentificado || ''),
+            fatoresPredisponentes: Array.isArray(form.fatoresPredisponentes) ? form.fatoresPredisponentes as string[] : [],
+            usoMedicamentosSNC: String(form.usoMedicamentosSNC || ''),
+            medicamentosSNC: Array.isArray(form.medicamentosSNC) ? form.medicamentosSNC as string[] : [],
+            quantidadeMedicamentosBaixoRisco: Number(form.quantidadeMedicamentosBaixoRisco) || 0,
+            quantidadeMedicamentosMedioRisco: Number(form.quantidadeMedicamentosMedioRisco) || 0,
+            quantidadeMedicamentosAltoRisco: Number(form.quantidadeMedicamentosAltoRisco) || 0,
+            acompanhante: String(form.acompanhante || ''),
+            tipoQueda: String(form.tipoQueda || ''),
+            localQueda: String(form.localQueda || ''),
+            horarioQueda: String(form.horarioQueda || ''),
+            turno: String(form.turno || ''),
+            consequencias: String(form.consequencias || '')
+          },
+          dadosPaciente,
+          dadosNotificador
+        };
+        resultado = await criarNotificacaoQueda(payload);
+
+      } else if (modalidade === "flebite") {
+        const payload = {
+          dadosFlebite: {
+            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
+            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
+            dataAdmissao: String(form.dataAdmissao || ''),
+            diagnostico: String(form.diagnostico || ''),
+            grauFlebite: String(form.grauFlebite || ''),
+            localPuncao: String(form.localPuncao || ''),
+            numeroPuncoes: Number(form.numeroPuncoes) || 0,
+            tipoCateter: String(form.tipoCateter || ''),
+            calibreCateter: String(form.calibreCateter || ''),
+            materialCateter: String(form.materialCateter || ''),
+            numeroCateteresLumen: Number(form.numeroCateteresLumen) || 0,
+            tempoPermanencia: String(form.tempoPermanencia || ''),
+            dataRetirada: String(form.dataRetirada || ''),
+            usoMedicamentosVesicantes: String(form.usoMedicamentosVesicantes || ''),
+            medicamentosAdministrados_medicamento: String(form.medicamentosAdministrados_medicamento || ''),
+            medicamentosAdministrados_diluente: String(form.medicamentosAdministrados_diluente || ''),
+            medicamentosAdministrados_modoInfusao: String(form.medicamentosAdministrados_modoInfusao || ''),
+            monitoramentoCateter_data: String(form.monitoramentoCateter_data || ''),
+            monitoramentoCateter_registroAcesso: String(form.monitoramentoCateter_registroAcesso || '')
+          },
+          dadosPaciente,
+          dadosNotificador
+        };
+        resultado = await criarNotificacaoFlebite(payload);
+
+      } else if (modalidade === "reacao-adversa") {
+        const payload = {
+          dadosReacaoAdversa: {
+            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
+            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
+            descricaoIncidente: String(form.descricaoIncidente || ''),
+            descricaoReacao: String(form.descricaoReacao || ''),
+            reacao_dataInicio: String(form.reacao_dataInicio || ''),
+            reacao_dataFim: String(form.reacao_dataFim || ''),
+            reacao_duracao: String(form.reacao_duracao || ''),
+            reacao_desfecho: String(form.reacao_desfecho || ''),
+            med_nomeGenerico: String(form.med_nomeGenerico || ''),
+            med_provavelCausador: String(form.med_provavelCausador || ''),
+            med_fabricante: String(form.med_fabricante || ''),
+            med_lote: String(form.med_lote || ''),
+            med_posologia: String(form.med_posologia || ''),
+            med_viaAdministracao: String(form.med_viaAdministracao || ''),
+            med_dataInicio: String(form.med_dataInicio || ''),
+            med_dataFim: String(form.med_dataFim || ''),
+            med_duracao: String(form.med_duracao || ''),
+            med_indicacao: String(form.med_indicacao || ''),
+            med_acaoAdotada: String(form.med_acaoAdotada || '')
+          },
+          dadosPaciente,
+          dadosNotificador
+        };
+        resultado = await criarNotificacaoReacaoAdversa(payload);
+
+      } else if (modalidade === "erro-medicacao") {
+        const payload = {
+          dadosErroMedicacao: {
+            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
+            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
+            descricaoIncidente: String(form.descricaoIncidente || ''),
+            erro_dataInicio: String(form.erro_dataInicio || ''),
+            erro_dataFim: String(form.erro_dataFim || ''),
+            ocorrencia: String(form.ocorrencia || ''),
+            descricaoErro: String(form.descricaoErro || ''),
+            efeitoNocivo: String(form.efeitoNocivo || ''),
+            descricaoEfeitos: String(form.descricaoEfeitos || ''),
+            desfecho: String(form.desfecho || ''),
+            causasErro: Array.isArray(form.causasErro) ? form.causasErro as string[] : [],
+            localErro: String(form.localErro || ''),
+            med_nomeGenerico: String(form.med_nomeGenerico || ''),
+            med_posologia: String(form.med_posologia || ''),
+            med_viaAdministracao: String(form.med_viaAdministracao || ''),
+            med_dataInicio: String(form.med_dataInicio || ''),
+            med_dataFim: String(form.med_dataFim || ''),
+            med_indicacao: String(form.med_indicacao || ''),
+            med_lote: String(form.med_lote || ''),
+            med_validade: String(form.med_validade || '')
+          },
+          dadosPaciente,
+          dadosNotificador
+        };
+        resultado = await criarNotificacaoErroMedicacao(payload);
+
+      } else {
+        // Para modalidades ainda não implementadas
+        const dadosCompletos = {
+          modalidade,
+          dadosFormulario: form,
+          dadosPaciente,
+          dadosNotificador,
+        };
+        
+        console.log({ 
+          action: "create", 
+          modalidade, 
+          data: dadosCompletos 
+        });
+
+        toast.success("Formulário salvo com sucesso!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        setTimeout(() => navigate(-1), 1500);
+        return;
+      }
+
+      if (resultado?.success) {
+        toast.success(resultado.message || "Notificação criada com sucesso!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        console.log('Notificação processada com sucesso:', resultado);
+        setTimeout(() => navigate(-1), 1500);
+      } else {
+        toast.error(resultado?.message || "Erro ao processar notificação", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        console.error('Erro da API:', resultado);
+      }
+
+    } catch (error) {
+      console.error('Erro ao processar notificação:', error);
+      toast.error("Erro inesperado ao processar notificação. Tente novamente.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
     }
-    
-    // Navegar de volta após um pequeno delay para mostrar o toast
-    setTimeout(() => navigate(-1), 1500);
   };
 
   const isSelected = (id: string, value: string) => Array.isArray(form[id]) && form[id].includes(value);
@@ -637,10 +775,10 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         <Card>
           <CardHeader className="sticky top-0 z-10 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b">
             <CardTitle className="text-xl md:text-2xl">
-              {isEditMode ? `Editar ${schema.title} #${editNotificationId}` : schema.title}
+              {schema.title}
             </CardTitle>
             <CardDescription>
-              {isEditMode ? 'Atualize os dados da notificação' : 'Preencha os dados da notificação'}
+              Preencha os dados da notificação
             </CardDescription>
           </CardHeader>
           <form onSubmit={onSubmit}>
@@ -815,7 +953,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  {isEditMode ? 'Atualizar' : 'Salvar'}
+                  Salvar
                 </Button>
               </div>
             </CardFooter>
