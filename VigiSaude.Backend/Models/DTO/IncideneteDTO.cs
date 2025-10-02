@@ -1,6 +1,6 @@
 ﻿namespace VigiSaude.Backend.Models.DTO;
 
-public class IncideneteDTO
+public class IncideneteDto
 {
     public int? IdPaciente { get; set; }
     public required int IdSetor { get; set; }

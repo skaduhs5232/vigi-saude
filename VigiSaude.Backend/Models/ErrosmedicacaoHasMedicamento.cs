@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace VigiSaude.Backend.Models;
 
-public partial class ErrosmedicacaoHasMedicamento
+public partial class ErrosMedicacaoHasMedicamento
 {
     public int ErroMedicacaoIdIncidente { get; set; }
 
@@ -31,9 +31,9 @@ public partial class ErrosmedicacaoHasMedicamento
 
     public virtual Desfecho? DesfechoIdDesfechoNavigation { get; set; }
 
-    public virtual Errosmedicacao ErroMedicacaoIdIncidenteNavigation { get; set; } = null!;
+    public virtual ErrosMedicacao ErroMedicacaoIdIncidenteNavigation { get; set; } = null!;
 
     public virtual Medicamento MedicamentoIdMedicamentoNavigation { get; set; } = null!;
 
-    public virtual Viasadm? ViaAdmIdViaAdmNavigation { get; set; }
+    public virtual ViasAdm? ViaAdmIdViaAdmNavigation { get; set; }
 }

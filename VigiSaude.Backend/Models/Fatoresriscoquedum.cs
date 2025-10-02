@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace VigiSaude.Backend.Models;
 
-public partial class Fatoresriscoquedum
+public partial class FatoresRiscoQuedum
 {
     public int IdFatorRiscoQueda { get; set; }
 

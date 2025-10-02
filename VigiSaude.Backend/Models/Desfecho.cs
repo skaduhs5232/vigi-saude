@@ -9,7 +9,7 @@ public partial class Desfecho
 
     public string DescricaoDesfecho { get; set; } = null!;
 
-    public virtual ICollection<ErrosmedicacaoHasMedicamento> ErrosmedicacaoHasMedicamentos { get; set; } = new List<ErrosmedicacaoHasMedicamento>();
+    public virtual ICollection<ErrosMedicacaoHasMedicamento> ErrosMedicacaoHasMedicamentos { get; set; } = new List<ErrosMedicacaoHasMedicamento>();
 
     public virtual ICollection<RamHasMedicamento> RamHasMedicamentos { get; set; } = new List<RamHasMedicamento>();
 }

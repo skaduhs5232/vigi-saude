@@ -17,17 +17,19 @@ public partial class VigisaudeDbContext : DbContext
     {
     }
 
-    public virtual DbSet<CategoriasmedicamentoquedaHasQueda> CategoriasmedicamentoquedaHasQuedas { get; set; }
+    public virtual DbSet<CategoriasMedicamentoQuedaHasQueda> CategoriasMedicamentoQuedaHasQuedas { get; set; }
 
-    public virtual DbSet<Categoriasmedicamentoquedum> Categoriasmedicamentoqueda { get; set; }
+    public virtual DbSet<CategoriasMedicamentoQuedum> CategoriasMedicamentoQueda { get; set; }
 
     public virtual DbSet<Desfecho> Desfechos { get; set; }
 
-    public virtual DbSet<Errosmedicacao> Errosmedicacaos { get; set; }
+    public virtual DbSet<EfmigrationsHistory> EfmigrationsHistories { get; set; }
 
-    public virtual DbSet<ErrosmedicacaoHasMedicamento> ErrosmedicacaoHasMedicamentos { get; set; }
+    public virtual DbSet<ErrosMedicacao> ErrosMedicacaos { get; set; }
 
-    public virtual DbSet<Fatoresriscoquedum> Fatoresriscoqueda { get; set; }
+    public virtual DbSet<ErrosMedicacaoHasMedicamento> ErrosMedicacaoHasMedicamentos { get; set; }
+
+    public virtual DbSet<FatoresRiscoQuedum> FatoresRiscoQueda { get; set; }
 
     public virtual DbSet<Flebite> Flebites { get; set; }
 
@@ -35,11 +37,11 @@ public partial class VigisaudeDbContext : DbContext
 
     public virtual DbSet<Incidente> Incidentes { get; set; }
 
-    public virtual DbSet<Lesoespressao> Lesoespressaos { get; set; }
+    public virtual DbSet<LesoesPressao> LesoesPressaos { get; set; }
 
-    public virtual DbSet<Locaislesao> Locaislesaos { get; set; }
+    public virtual DbSet<LocaisLesao> LocaisLesaos { get; set; }
 
-    public virtual DbSet<Locaisquedum> Locaisqueda { get; set; }
+    public virtual DbSet<LocaisQuedum> LocaisQueda { get; set; }
 
     public virtual DbSet<Medicamento> Medicamentos { get; set; }
 
@@ -55,15 +57,13 @@ public partial class VigisaudeDbContext : DbContext
 
     public virtual DbSet<Setore> Setores { get; set; }
 
-    public virtual DbSet<Tiposincidente> Tiposincidentes { get; set; }
+    public virtual DbSet<TiposIncidente> TiposIncidentes { get; set; }
 
-    public virtual DbSet<Tiposquedum> Tiposqueda { get; set; }
+    public virtual DbSet<TiposQuedum> TiposQueda { get; set; }
 
-    public virtual DbSet<Viasadm> Viasadms { get; set; }
+    public virtual DbSet<Usuario> Usuarios { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseMySql("server=localhost;port=3306;database=vigisaude_db;uid=vigi_saude;pwd=Vigisaude@2025", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.41-mysql"));
+    public virtual DbSet<ViasAdm> ViasAdms { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,13 +71,13 @@ public partial class VigisaudeDbContext : DbContext
             .UseCollation("utf8mb4_0900_ai_ci")
             .HasCharSet("utf8mb4");
 
-        modelBuilder.Entity<CategoriasmedicamentoquedaHasQueda>(entity =>
+        modelBuilder.Entity<CategoriasMedicamentoQuedaHasQueda>(entity =>
         {
             entity.HasKey(e => new { e.CategoriaMedicamentoQuedaIdCategoriaMedicamentoQueda, e.QuedaIdIncidente })
                 .HasName("PRIMARY")
                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
-            entity.ToTable("categoriasmedicamentoqueda_has_quedas");
+            entity.ToTable("CategoriasMedicamentoQueda_has_Quedas");
 
             entity.HasIndex(e => e.CategoriaMedicamentoQuedaIdCategoriaMedicamentoQueda, "fk_MedicamentoQueda_has_Queda_MedicamentoQueda1_idx");
 
@@ -87,22 +87,20 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.QuedaIdIncidente).HasColumnName("Queda_idIncidente");
             entity.Property(e => e.DescricaoMeds).HasColumnType("text");
 
-            entity.HasOne(d => d.CategoriaMedicamentoQuedaIdCategoriaMedicamentoQuedaNavigation).WithMany(p => p.CategoriasmedicamentoquedaHasQueda)
+            entity.HasOne(d => d.CategoriaMedicamentoQuedaIdCategoriaMedicamentoQuedaNavigation).WithMany(p => p.CategoriasMedicamentoQuedaHasQueda)
                 .HasForeignKey(d => d.CategoriaMedicamentoQuedaIdCategoriaMedicamentoQueda)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_MedicamentoQueda_has_Queda_MedicamentoQueda1");
 
-            entity.HasOne(d => d.QuedaIdIncidenteNavigation).WithMany(p => p.CategoriasmedicamentoquedaHasQueda)
+            entity.HasOne(d => d.QuedaIdIncidenteNavigation).WithMany(p => p.CategoriasMedicamentoQuedaHasQueda)
                 .HasForeignKey(d => d.QuedaIdIncidente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_MedicamentoQueda_has_Queda_Queda1");
         });
 
-        modelBuilder.Entity<Categoriasmedicamentoquedum>(entity =>
+        modelBuilder.Entity<CategoriasMedicamentoQuedum>(entity =>
         {
             entity.HasKey(e => e.IdCategoriaMedicamentoQueda).HasName("PRIMARY");
-
-            entity.ToTable("categoriasmedicamentoqueda");
 
             entity.HasIndex(e => e.DescricaoCatMedQueda, "DescricaoMedQueda_UNIQUE").IsUnique();
 
@@ -115,8 +113,6 @@ public partial class VigisaudeDbContext : DbContext
         {
             entity.HasKey(e => e.IdDesfecho).HasName("PRIMARY");
 
-            entity.ToTable("desfechos");
-
             entity.HasIndex(e => e.DescricaoDesfecho, "DescricaoDesfecho_UNIQUE").IsUnique();
 
             entity.Property(e => e.IdDesfecho)
@@ -125,29 +121,39 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.DescricaoDesfecho).HasMaxLength(45);
         });
 
-        modelBuilder.Entity<Errosmedicacao>(entity =>
+        modelBuilder.Entity<EfmigrationsHistory>(entity =>
+        {
+            entity.HasKey(e => e.MigrationId).HasName("PRIMARY");
+
+            entity.ToTable("__EFMigrationsHistory");
+
+            entity.Property(e => e.MigrationId).HasMaxLength(150);
+            entity.Property(e => e.ProductVersion).HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<ErrosMedicacao>(entity =>
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
 
-            entity.ToTable("errosmedicacao");
+            entity.ToTable("ErrosMedicacao");
 
             entity.Property(e => e.IdIncidente)
                 .ValueGeneratedNever()
                 .HasColumnName("idIncidente");
 
-            entity.HasOne(d => d.IdIncidenteNavigation).WithOne(p => p.Errosmedicacao)
-                .HasForeignKey<Errosmedicacao>(d => d.IdIncidente)
+            entity.HasOne(d => d.IdIncidenteNavigation).WithOne(p => p.ErrosMedicacao)
+                .HasForeignKey<ErrosMedicacao>(d => d.IdIncidente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_ErroMedicacao_Incidente1");
         });
 
-        modelBuilder.Entity<ErrosmedicacaoHasMedicamento>(entity =>
+        modelBuilder.Entity<ErrosMedicacaoHasMedicamento>(entity =>
         {
             entity.HasKey(e => new { e.ErroMedicacaoIdIncidente, e.MedicamentoIdMedicamento })
                 .HasName("PRIMARY")
                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
-            entity.ToTable("errosmedicacao_has_medicamentos");
+            entity.ToTable("ErrosMedicacao_has_Medicamentos");
 
             entity.HasIndex(e => e.DesfechoIdDesfecho, "fk_ErroMedicacao_has_Medicamento_Desfecho1_idx");
 
@@ -168,30 +174,28 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.ResultouEfeitoNocivo).HasMaxLength(15);
             entity.Property(e => e.ViaAdmIdViaAdm).HasColumnName("ViaAdm_idViaAdm");
 
-            entity.HasOne(d => d.DesfechoIdDesfechoNavigation).WithMany(p => p.ErrosmedicacaoHasMedicamentos)
+            entity.HasOne(d => d.DesfechoIdDesfechoNavigation).WithMany(p => p.ErrosMedicacaoHasMedicamentos)
                 .HasForeignKey(d => d.DesfechoIdDesfecho)
                 .HasConstraintName("fk_ErroMedicacao_has_Medicamento_Desfecho1");
 
-            entity.HasOne(d => d.ErroMedicacaoIdIncidenteNavigation).WithMany(p => p.ErrosmedicacaoHasMedicamentos)
+            entity.HasOne(d => d.ErroMedicacaoIdIncidenteNavigation).WithMany(p => p.ErrosMedicacaoHasMedicamentos)
                 .HasForeignKey(d => d.ErroMedicacaoIdIncidente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_ErroMedicacao_has_Medicamento_ErroMedicacao1");
 
-            entity.HasOne(d => d.MedicamentoIdMedicamentoNavigation).WithMany(p => p.ErrosmedicacaoHasMedicamentos)
+            entity.HasOne(d => d.MedicamentoIdMedicamentoNavigation).WithMany(p => p.ErrosMedicacaoHasMedicamentos)
                 .HasForeignKey(d => d.MedicamentoIdMedicamento)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_ErroMedicacao_has_Medicamento_Medicamento1");
 
-            entity.HasOne(d => d.ViaAdmIdViaAdmNavigation).WithMany(p => p.ErrosmedicacaoHasMedicamentos)
+            entity.HasOne(d => d.ViaAdmIdViaAdmNavigation).WithMany(p => p.ErrosMedicacaoHasMedicamentos)
                 .HasForeignKey(d => d.ViaAdmIdViaAdm)
                 .HasConstraintName("fk_ErroMedicacao_has_Medicamento_ViaAdm1");
         });
 
-        modelBuilder.Entity<Fatoresriscoquedum>(entity =>
+        modelBuilder.Entity<FatoresRiscoQuedum>(entity =>
         {
             entity.HasKey(e => e.IdFatorRiscoQueda).HasName("PRIMARY");
-
-            entity.ToTable("fatoresriscoqueda");
 
             entity.HasIndex(e => e.DescricaoFator, "DescricaoFatores_UNIQUE").IsUnique();
 
@@ -201,12 +205,12 @@ public partial class VigisaudeDbContext : DbContext
 
             entity.HasMany(d => d.QuedaIdIncidentes).WithMany(p => p.FatorRiscoQuedaIdFatorRiscoQueda)
                 .UsingEntity<Dictionary<string, object>>(
-                    "FatoresriscoquedaHasQueda",
+                    "FatoresRiscoQuedaHasQueda",
                     r => r.HasOne<Queda>().WithMany()
                         .HasForeignKey("QuedaIdIncidente")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("fk_FatorRiscoQueda_has_Queda_Queda1"),
-                    l => l.HasOne<Fatoresriscoquedum>().WithMany()
+                    l => l.HasOne<FatoresRiscoQuedum>().WithMany()
                         .HasForeignKey("FatorRiscoQuedaIdFatorRiscoQueda")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("fk_FatorRiscoQueda_has_Queda_FatorRiscoQueda1"),
@@ -215,7 +219,7 @@ public partial class VigisaudeDbContext : DbContext
                         j.HasKey("FatorRiscoQuedaIdFatorRiscoQueda", "QuedaIdIncidente")
                             .HasName("PRIMARY")
                             .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
-                        j.ToTable("fatoresriscoqueda_has_quedas");
+                        j.ToTable("FatoresRiscoQueda_has_Quedas");
                         j.HasIndex(new[] { "FatorRiscoQuedaIdFatorRiscoQueda" }, "fk_FatorRiscoQueda_has_Queda_FatorRiscoQueda1_idx");
                         j.HasIndex(new[] { "QuedaIdIncidente" }, "fk_FatorRiscoQueda_has_Queda_Queda1_idx");
                         j.IndexerProperty<int>("FatorRiscoQuedaIdFatorRiscoQueda").HasColumnName("FatorRiscoQueda_idFatorRiscoQueda");
@@ -226,8 +230,6 @@ public partial class VigisaudeDbContext : DbContext
         modelBuilder.Entity<Flebite>(entity =>
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
-
-            entity.ToTable("flebites");
 
             entity.Property(e => e.IdIncidente)
                 .ValueGeneratedOnAdd()
@@ -251,7 +253,7 @@ public partial class VigisaudeDbContext : DbContext
                 .HasName("PRIMARY")
                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
-            entity.ToTable("flebites_has_medicamentos");
+            entity.ToTable("Flebites_has_Medicamentos");
 
             entity.HasIndex(e => e.FlebiteIdIncidente, "fk_Flebite_has_Medicamento_Flebite1_idx");
 
@@ -276,8 +278,6 @@ public partial class VigisaudeDbContext : DbContext
         modelBuilder.Entity<Incidente>(entity =>
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
-
-            entity.ToTable("incidentes");
 
             entity.HasIndex(e => e.NotificadorIdNotificador, "fk_Incidente_Notificador1_idx");
 
@@ -317,11 +317,11 @@ public partial class VigisaudeDbContext : DbContext
                 .HasConstraintName("fk_Incidente_TipoIncidente1");
         });
 
-        modelBuilder.Entity<Lesoespressao>(entity =>
+        modelBuilder.Entity<LesoesPressao>(entity =>
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
 
-            entity.ToTable("lesoespressao");
+            entity.ToTable("LesoesPressao");
 
             entity.HasIndex(e => e.LocalLesaoIdLocalLesao, "fk_LesaoPressao_LocalLesao1_idx");
 
@@ -339,21 +339,21 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.ResponsávelAvaliacao).HasMaxLength(20);
             entity.Property(e => e.UsoCoberturaAdequada).HasMaxLength(15);
 
-            entity.HasOne(d => d.IdIncidenteNavigation).WithOne(p => p.Lesoespressao)
-                .HasForeignKey<Lesoespressao>(d => d.IdIncidente)
+            entity.HasOne(d => d.IdIncidenteNavigation).WithOne(p => p.LesoesPressao)
+                .HasForeignKey<LesoesPressao>(d => d.IdIncidente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_LesaoPressao_Incidente1");
 
-            entity.HasOne(d => d.LocalLesaoIdLocalLesaoNavigation).WithMany(p => p.Lesoespressaos)
+            entity.HasOne(d => d.LocalLesaoIdLocalLesaoNavigation).WithMany(p => p.LesoesPressaos)
                 .HasForeignKey(d => d.LocalLesaoIdLocalLesao)
                 .HasConstraintName("fk_LesaoPressao_LocalLesao1");
         });
 
-        modelBuilder.Entity<Locaislesao>(entity =>
+        modelBuilder.Entity<LocaisLesao>(entity =>
         {
             entity.HasKey(e => e.IdLocalLesao).HasName("PRIMARY");
 
-            entity.ToTable("locaislesao");
+            entity.ToTable("LocaisLesao");
 
             entity.HasIndex(e => e.DescricaoLocal, "DescricaoLocal_UNIQUE").IsUnique();
 
@@ -363,11 +363,9 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.DescricaoLocal).HasMaxLength(45);
         });
 
-        modelBuilder.Entity<Locaisquedum>(entity =>
+        modelBuilder.Entity<LocaisQuedum>(entity =>
         {
             entity.HasKey(e => e.IdLocalQueda).HasName("PRIMARY");
-
-            entity.ToTable("locaisqueda");
 
             entity.HasIndex(e => e.DescricaoLocal, "LocalQuedacol_UNIQUE").IsUnique();
 
@@ -380,8 +378,6 @@ public partial class VigisaudeDbContext : DbContext
         {
             entity.HasKey(e => e.IdMedicamento).HasName("PRIMARY");
 
-            entity.ToTable("medicamentos");
-
             entity.Property(e => e.IdMedicamento).HasColumnName("idMedicamento");
             entity.Property(e => e.Fabricante).HasMaxLength(45);
             entity.Property(e => e.Lote).HasMaxLength(45);
@@ -391,8 +387,6 @@ public partial class VigisaudeDbContext : DbContext
         modelBuilder.Entity<Notificadore>(entity =>
         {
             entity.HasKey(e => e.IdNotificador).HasName("PRIMARY");
-
-            entity.ToTable("notificadores");
 
             entity.HasIndex(e => e.SetorIdSetor, "fk_Notificador_Setor1_idx");
 
@@ -412,8 +406,6 @@ public partial class VigisaudeDbContext : DbContext
         {
             entity.HasKey(e => e.IdPaciente).HasName("PRIMARY");
 
-            entity.ToTable("pacientes");
-
             entity.Property(e => e.IdPaciente).HasColumnName("idPaciente");
             entity.Property(e => e.HoraNascimento).HasColumnType("time");
             entity.Property(e => e.Leito).HasMaxLength(10);
@@ -426,8 +418,6 @@ public partial class VigisaudeDbContext : DbContext
         modelBuilder.Entity<Queda>(entity =>
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
-
-            entity.ToTable("quedas");
 
             entity.HasIndex(e => e.LocalQuedaIdLocalQueda, "fk_Queda_LocalQueda1_idx");
 
@@ -461,7 +451,7 @@ public partial class VigisaudeDbContext : DbContext
         {
             entity.HasKey(e => e.IdIncidente).HasName("PRIMARY");
 
-            entity.ToTable("ram");
+            entity.ToTable("Ram");
 
             entity.Property(e => e.IdIncidente)
                 .ValueGeneratedNever()
@@ -479,7 +469,7 @@ public partial class VigisaudeDbContext : DbContext
                 .HasName("PRIMARY")
                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
-            entity.ToTable("ram_has_medicamentos");
+            entity.ToTable("Ram_has_Medicamentos");
 
             entity.HasIndex(e => e.DesfechoIdDesfecho, "fk_Ram_has_Medicamento_Desfecho1_idx");
 
@@ -522,8 +512,6 @@ public partial class VigisaudeDbContext : DbContext
         {
             entity.HasKey(e => e.IdSetor).HasName("PRIMARY");
 
-            entity.ToTable("setores");
-
             entity.HasIndex(e => e.DescricaoSetor, "DescricaoSetor_UNIQUE").IsUnique();
 
             entity.Property(e => e.IdSetor)
@@ -532,11 +520,11 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.DescricaoSetor).HasMaxLength(45);
         });
 
-        modelBuilder.Entity<Tiposincidente>(entity =>
+        modelBuilder.Entity<TiposIncidente>(entity =>
         {
             entity.HasKey(e => e.IdTipoIncidente).HasName("PRIMARY");
 
-            entity.ToTable("tiposincidente");
+            entity.ToTable("TiposIncidente");
 
             entity.HasIndex(e => e.DescricaoTipoIncidente, "DescricaoTipoIncidente_UNIQUE").IsUnique();
 
@@ -546,11 +534,9 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.DescricaoTipoIncidente).HasMaxLength(45);
         });
 
-        modelBuilder.Entity<Tiposquedum>(entity =>
+        modelBuilder.Entity<TiposQuedum>(entity =>
         {
             entity.HasKey(e => e.IdTipoQueda).HasName("PRIMARY");
-
-            entity.ToTable("tiposqueda");
 
             entity.HasIndex(e => e.DescricaoTipo, "DescricaoTipo_UNIQUE").IsUnique();
 
@@ -560,11 +546,20 @@ public partial class VigisaudeDbContext : DbContext
             entity.Property(e => e.DescricaoTipo).HasMaxLength(45);
         });
 
-        modelBuilder.Entity<Viasadm>(entity =>
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.HasKey(e => e.IdUsuarios).HasName("PRIMARY");
+
+            entity.Property(e => e.IdUsuarios).HasColumnName("idUsuarios");
+            entity.Property(e => e.NomeUsuario).HasMaxLength(45);
+            entity.Property(e => e.Senha).HasMaxLength(45);
+        });
+
+        modelBuilder.Entity<ViasAdm>(entity =>
         {
             entity.HasKey(e => e.IdViaAdm).HasName("PRIMARY");
 
-            entity.ToTable("viasadm");
+            entity.ToTable("ViasAdm");
 
             entity.HasIndex(e => e.DescricaoVia, "DescricaoVia_UNIQUE").IsUnique();
 

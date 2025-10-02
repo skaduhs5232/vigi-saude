@@ -2,7 +2,7 @@
 
 namespace VigiSaude.Backend.Models.DTO.LesaoPressao;
 
-public class LesaoPressaoDTO : IncideneteDTO
+public class LesaoPressaoDto : IncideneteDto
 {
     public int? IdLesaoPressao { get; set; }
     public DateOnly? DataPrimeiraAvaliacao { get; set; }

@@ -33,13 +33,13 @@ public partial class Queda
 
     public string? Desfecho { get; set; }
 
-    public virtual ICollection<CategoriasmedicamentoquedaHasQueda> CategoriasmedicamentoquedaHasQueda { get; set; } = new List<CategoriasmedicamentoquedaHasQueda>();
+    public virtual ICollection<CategoriasMedicamentoQuedaHasQueda> CategoriasMedicamentoQuedaHasQueda { get; set; } = new List<CategoriasMedicamentoQuedaHasQueda>();
 
     public virtual Incidente IdIncidenteNavigation { get; set; } = null!;
 
-    public virtual Locaisquedum? LocalQuedaIdLocalQuedaNavigation { get; set; }
+    public virtual LocaisQuedum? LocalQuedaIdLocalQuedaNavigation { get; set; }
 
-    public virtual Tiposquedum? TipoQuedaIdTipoQuedaNavigation { get; set; }
+    public virtual TiposQuedum? TipoQuedaIdTipoQuedaNavigation { get; set; }
 
-    public virtual ICollection<Fatoresriscoquedum> FatorRiscoQuedaIdFatorRiscoQueda { get; set; } = new List<Fatoresriscoquedum>();
+    public virtual ICollection<FatoresRiscoQuedum> FatorRiscoQuedaIdFatorRiscoQueda { get; set; } = new List<FatoresRiscoQuedum>();
 }

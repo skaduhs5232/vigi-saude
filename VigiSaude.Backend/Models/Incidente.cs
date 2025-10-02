@@ -27,11 +27,11 @@ public partial class Incidente
 
     public string? ClassificacaoDano { get; set; }
 
-    public virtual Errosmedicacao? Errosmedicacao { get; set; }
+    public virtual ErrosMedicacao? ErrosMedicacao { get; set; }
 
     public virtual Flebite? Flebite { get; set; }
 
-    public virtual Lesoespressao? Lesoespressao { get; set; }
+    public virtual LesoesPressao? LesoesPressao { get; set; }
 
     public virtual Notificadore NotificadorIdNotificadorNavigation { get; set; } = null!;
 
@@ -43,5 +43,5 @@ public partial class Incidente
 
     public virtual Setore SetorIdSetorNavigation { get; set; } = null!;
 
-    public virtual Tiposincidente TipoIncidenteIdTipoIncidenteNavigation { get; set; } = null!;
+    public virtual TiposIncidente TipoIncidenteIdTipoIncidenteNavigation { get; set; } = null!;
 }

@@ -15,7 +15,7 @@ public partial class Medicamento
 
     public DateOnly? Validade { get; set; }
 
-    public virtual ICollection<ErrosmedicacaoHasMedicamento> ErrosmedicacaoHasMedicamentos { get; set; } = new List<ErrosmedicacaoHasMedicamento>();
+    public virtual ICollection<ErrosMedicacaoHasMedicamento> ErrosMedicacaoHasMedicamentos { get; set; } = new List<ErrosMedicacaoHasMedicamento>();
 
     public virtual ICollection<FlebitesHasMedicamento> FlebitesHasMedicamentos { get; set; } = new List<FlebitesHasMedicamento>();
 

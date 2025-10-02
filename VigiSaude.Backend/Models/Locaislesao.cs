@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace VigiSaude.Backend.Models;
 
-public partial class Locaislesao
+public partial class LocaisLesao
 {
     public int IdLocalLesao { get; set; }
 
     public string DescricaoLocal { get; set; } = null!;
 
-    public virtual ICollection<Lesoespressao> Lesoespressaos { get; set; } = new List<Lesoespressao>();
+    public virtual ICollection<LesoesPressao> LesoesPressaos { get; set; } = new List<LesoesPressao>();
 }

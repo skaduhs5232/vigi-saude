@@ -11,20 +11,26 @@ namespace VigiSaude.Backend.Controllers;
 public class IncidenteController(VigisaudeDbContext context) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> RegistrarLesaoPressao(RequestNovaLesaoPressaoDTO request)
+    public async Task<IActionResult> RegistrarLesaoPressao(RequestNovaLesaoPressaoDto request)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        Paciente novoPaciente = (Paciente)request.Paciente;
+        Paciente novoPaciente = (Paciente)request.DadosPaciente;
         context.Pacientes.Add(novoPaciente);
         context.SaveChanges();
-        request.Paciente.IdPaciente = novoPaciente.IdPaciente;
-        request.LesaoPressao.IdPaciente = novoPaciente.IdPaciente;
+        request.DadosPaciente.IdPaciente = novoPaciente.IdPaciente;
+        request.DadosLesaoPresao.IdPaciente = novoPaciente.IdPaciente;
 
-        await context.Lesoespressaos.AddAsync((Lesoespressao)request);
+        Notificadore novoNotificador = (Notificadore)request.DadosNotificador;
+        context.Notificadores.Add(novoNotificador);
+        context.SaveChanges();
+        request.DadosNotificador.IdNotificador = novoNotificador.IdNotificador;
+        request.DadosLesaoPresao.IdNotificador = novoNotificador.IdNotificador;
+
+        await context.LesoesPressaos.AddAsync((LesoesPressao)request);
         await context.SaveChangesAsync();
 
         return Ok(ModelState);

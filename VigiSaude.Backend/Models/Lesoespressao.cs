@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace VigiSaude.Backend.Models;
 
-public partial class Lesoespressao
+public partial class LesoesPressao
 {
     public int IdIncidente { get; set; }
 
@@ -47,5 +47,5 @@ public partial class Lesoespressao
 
     public virtual Incidente IdIncidenteNavigation { get; set; } = null!;
 
-    public virtual Locaislesao? LocalLesaoIdLocalLesaoNavigation { get; set; }
+    public virtual LocaisLesao? LocalLesaoIdLocalLesaoNavigation { get; set; }
 }

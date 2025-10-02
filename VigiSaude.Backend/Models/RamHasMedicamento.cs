@@ -31,5 +31,5 @@ public partial class RamHasMedicamento
 
     public virtual Ram RamIdIncidenteNavigation { get; set; } = null!;
 
-    public virtual Viasadm? ViaAdmIdViaAdmNavigation { get; set; }
+    public virtual ViasAdm? ViaAdmIdViaAdmNavigation { get; set; }
 }

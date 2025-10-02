@@ -12,7 +12,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
         {
             migrationBuilder.AlterColumn<decimal>(
                 name: "Peso",
-                table: "pacientes",
+                table: "Pacientes",
                 type: "decimal(10)",
                 precision: 10,
                 nullable: true,
@@ -23,7 +23,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
 
             migrationBuilder.AlterColumn<string>(
                 name: "TempoInternacaoAteLesao",
-                table: "lesoespressao",
+                table: "LesoesPressao",
                 type: "longtext",
                 nullable: true,
                 collation: "utf8mb4_0900_ai_ci",
@@ -34,7 +34,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "TempoPermanenciaAcesso",
-                table: "flebites",
+                table: "Flebites",
                 type: "decimal(10)",
                 precision: 10,
                 nullable: true,
@@ -49,7 +49,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
         {
             migrationBuilder.AlterColumn<decimal>(
                 name: "Peso",
-                table: "pacientes",
+                table: "Pacientes",
                 type: "decimal(10,30)",
                 precision: 10,
                 nullable: true,
@@ -60,7 +60,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
 
             migrationBuilder.AlterColumn<int>(
                 name: "TempoInternacaoAteLesao",
-                table: "lesoespressao",
+                table: "LesoesPressao",
                 type: "int",
                 nullable: true,
                 oldClrType: typeof(string),
@@ -71,7 +71,7 @@ namespace VigiSaude.Backend.Migrations.VigisaudeDb
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "TempoPermanenciaAcesso",
-                table: "flebites",
+                table: "Flebites",
                 type: "decimal(10,30)",
                 precision: 10,
                 nullable: true,
