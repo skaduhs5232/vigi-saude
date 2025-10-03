@@ -44,7 +44,13 @@ export interface PayloadNotificacaoErroMedicacao {
     medicamentos?: MedicamentoErro[];
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+
+export interface Desfecho{
+		idDesfecho: number,
+		descricaoDesfecho: string
+	}
+
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const criarNotificacaoErroMedicacao = async (
     dados: PayloadNotificacaoErroMedicacao
@@ -86,6 +92,17 @@ export const criarNotificacaoErroMedicacao = async (
     }
 };
 
+export const obterDesfechos = async (): Promise<Desfecho[]> => {
+    try {
+        const response = await axios.get<Desfecho[]>(`${API_BASE_URL}/api/Desfecho/GetTodosDesfechos`);
+        return response.data;
+    } catch (error) {
+        console.error('Erro ao obter desfechos:', error);
+        return [];
+    }
+};
+
 export default {
-    criarNotificacaoErroMedicacao
+    criarNotificacaoErroMedicacao,
+    obterDesfechos
 };

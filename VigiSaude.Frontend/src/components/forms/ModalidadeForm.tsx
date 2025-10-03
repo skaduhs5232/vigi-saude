@@ -13,8 +13,8 @@ import {
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
 import { criarNotificacaoFlebite } from "./services/flebite.service";
-import { criarNotificacaoReacaoAdversa } from "./services/reacao-adversa.service";
-import { criarNotificacaoErroMedicacao } from "./services/erro-medicacao.service";
+import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
+import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, Desfecho } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
 
 type FieldBase = { id: string; label: string; required?: boolean };
@@ -34,7 +34,6 @@ export type ModalidadeSchema = { title: string; fields: Field[] };
 const setoresOptions = ["Emergência Unidade 24h", "Emergência unidade de retaguarda", "Emergência obstétrica", "UTI", "Clínica cirúrgica", "Clínica médica", "Clínica pediátrica", "Clínica gineco-obstetrica", "CPN", "Centro cirúrgico", "Neonatologia", "Canguru", "Centro de imagem", "Laboratório", "Farmácia", "Transporte"];
 const categoriaProfOptions = ["Médico", "Enfermeiro", "Farmacêutico", "Dentista", "Outros"];
 const sexoOptions = ["M", "F", "Desconhecido"];
-const desfechoOpcoes = ["Recuperado/resolvido", "Em recuperação", "Não recuperado", "Não resolvido", "Recuperado com sequelas", "Morte", "Desconhecido"];
 const viaAdministracaoOpcoes = ["Oral", "Intramuscular", "Endovenosa", "Dérmica", "Inalatória", "Subcutânea", "Nasal", "Ocular", "Retal", "Vaginal", "Outra", "Desconhecida"];
 
 const schemas: Record<string, ModalidadeSchema> = {
@@ -123,7 +122,7 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "reacao_dataInicio", type: "date", label: "Início reação", required: true },
       { id: "reacao_dataFim", type: "date", label: "Fim reação", required: true },
       { id: "reacao_duracao", type: "text", label: "Duração reação", required: true },
-      { id: "reacao_desfecho", type: "select", label: "Desfecho", required: true, options: desfechoOpcoes },
+      { id: "reacao_desfecho", type: "select", label: "Desfecho", required: true, options: [] },
       { id: "med_nomeGenerico", type: "text", label: "Medicamento (genérico)", required: true },
       { id: "med_provavelCausador", type: "radio", label: "Provável causador", required: true, options: ["Sim", "Não"] },
       { id: "med_fabricante", type: "text", label: "Fabricante" },
@@ -149,7 +148,7 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "descricaoErro", type: "textarea", label: "Descrição do erro", required: true },
       { id: "efeitoNocivo", type: "select", label: "Efeito nocivo", required: true, options: ["Sim", "Não", "Desconhecido"] },
       { id: "descricaoEfeitos", type: "textarea", label: "Descrição dos efeitos" },
-      { id: "desfecho", type: "select", label: "Desfecho", required: true, options: desfechoOpcoes },
+      { id: "desfecho", type: "select", label: "Desfecho", required: true, options: [] },
       { id: "causasErro", type: "multiselect", label: "Causas do erro", required: true, options: ["Abreviação", "Nomes similares", "Distração", "Cálculo/preparação", "Rotina de administração", "Prescrição", "Equipamentos", "Outro"] },
       { id: "localErro", type: "select", label: "Local do erro", required: true, options: setoresOptions },
       { id: "med_nomeGenerico", type: "text", label: "Medicamento (genérico)", required: true },
@@ -192,8 +191,22 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacienteSexo, setPacienteSexo] = useState("");
   const [pacientePeso, setPacientePeso] = useState("");
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
+  const [desfechos, setDesfechos] = useState<Desfecho[]>([]);
 
-
+  // Carregar desfechos ao montar o componente
+  useEffect(() => {
+    const carregarDesfechos = async () => {
+      try {
+        const dados = await obterDesfechosErro();
+        console.log('Desfechos carregados:', dados?.length || 0, 'itens');
+        setDesfechos(dados);
+      } catch (error) {
+        console.error('Erro ao carregar desfechos:', error);
+        toast.error('Erro ao carregar desfechos');
+      }
+    };
+    carregarDesfechos();
+  }, []);
 
   useEffect(() => {
     const notificadorData = {
@@ -714,16 +727,24 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
             </div>
           )}
           {f.type === "select" && (
-            <Select value={valAsStr(f.id)} onValueChange={(v) => set(f.id, v)}>
+            <Select value={valAsStr(f.id)} onValueChange={(v) => set(f.id, v)} disabled={(f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
+                <SelectValue placeholder={(f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0 ? "Carregando desfechos..." : "Selecione"} />
               </SelectTrigger>
               <SelectContent>
-                {(f as SelectField).options.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {prettyLabel(opt)}
-                  </SelectItem>
-                ))}
+                {(f.id === "desfecho" || f.id === "reacao_desfecho") ? (
+                  desfechos.map((desfecho) => (
+                    <SelectItem key={desfecho.idDesfecho} value={String(desfecho.idDesfecho)}>
+                      {desfecho.descricaoDesfecho}
+                    </SelectItem>
+                  ))
+                ) : (
+                  (f as SelectField).options.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {prettyLabel(opt)}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           )}
@@ -767,7 +788,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     }
     return elements;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incidentFields, form, modalidade, groupConfig]);
+  }, [incidentFields, form, modalidade, groupConfig, desfechos]);
 
   return (
     <div className="min-h-screen w-full bg-background">

@@ -32,7 +32,7 @@ export interface PayloadNotificacaoLesaoPressao {
   dadosLesaoPressao: DadosFormularioLesaoPressao;
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const criarNotificacaoLesaoPressao = async (
   dados: PayloadNotificacaoLesaoPressao
@@ -44,7 +44,7 @@ export const criarNotificacaoLesaoPressao = async (
     };
 
     const response = await axios.post(
-      `${API_BASE_URL}/notificacoes/lesao-pressao`,
+      `${API_BASE_URL}/api/Incidente`,
       payload,
       {
         headers: {

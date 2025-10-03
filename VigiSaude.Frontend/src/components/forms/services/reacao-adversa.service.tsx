@@ -1,6 +1,11 @@
 import axios from 'axios';
 import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse, DadosMedicamento } from '../interfaces/padroes';
 
+export interface Desfecho {
+  idDesfecho: number;
+  descricaoDesfecho: string;
+}
+
 export interface DadosFormularioReacaoAdversa {
   idadeMomentoValor: number;
   idadeMomentoUnidade: string;
@@ -41,7 +46,7 @@ export interface PayloadNotificacaoReacaoAdversa {
   medicamentos?: MedicamentoRAM[];
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const criarNotificacaoReacaoAdversa = async (
   dados: PayloadNotificacaoReacaoAdversa
@@ -83,6 +88,17 @@ export const criarNotificacaoReacaoAdversa = async (
   }
 };
 
+export const obterDesfechos = async (): Promise<Desfecho[]> => {
+  try {
+    const response = await axios.get<Desfecho[]>(`${API_BASE_URL}/api/Desfecho/GetTodosDesfechos`);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao obter desfechos:', error);
+    return [];
+  }
+};
+
 export default {
-  criarNotificacaoReacaoAdversa
+  criarNotificacaoReacaoAdversa,
+  obterDesfechos
 };
