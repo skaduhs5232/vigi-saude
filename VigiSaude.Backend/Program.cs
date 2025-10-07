@@ -6,6 +6,17 @@ using VigiSaude.Backend.Repositories.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var CorsPolicy = "CorsPolicy";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: CorsPolicy, builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 builder.AddGlobalErrorHandling();
 
 builder.AddDatabase();
@@ -23,6 +34,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 
 app.MapIdentityApi<User>();
+
+app.UseCors(CorsPolicy);
 
 if (app.Environment.IsDevelopment())
 {
