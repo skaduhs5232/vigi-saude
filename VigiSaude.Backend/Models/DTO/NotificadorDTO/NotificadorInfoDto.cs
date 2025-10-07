@@ -6,9 +6,10 @@ public class NotificadorInfoDto
     public string? Nome { get; set; }
     public string? Email { get; set; }
     public string? Telefone { get; set; }
-    public string? Tipo { get; set; }
     public int? Setor { get; set; }
     public string? Categoria { get; set; }
+
+    public bool FuncionarioGerenciaRisco { get; set; }
 
     public static explicit operator Notificadore(NotificadorInfoDto request)
     {
@@ -18,7 +19,8 @@ public class NotificadorInfoDto
             Email = request.Email,
             Telefone = request.Telefone,
             SetorIdSetor = request.Setor,
-            CategoriaProfissional = request.Categoria
+            CategoriaProfissional = request.Categoria,
+            FuncionarioGerenciaRisco = request.FuncionarioGerenciaRisco
         };
     }
 }
