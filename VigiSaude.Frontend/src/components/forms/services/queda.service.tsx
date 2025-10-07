@@ -29,7 +29,7 @@ export interface PayloadNotificacaoQueda {
   dadosQueda: DadosFormularioQueda;
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const criarNotificacaoQueda = async (
   dados: PayloadNotificacaoQueda

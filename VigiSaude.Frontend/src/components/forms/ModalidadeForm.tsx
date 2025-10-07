@@ -170,20 +170,25 @@ export type ModalidadeFormProps = {
 
 export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const navigate = useNavigate();
+  // ==================== CONFIGURAÇÃO DO SCHEMA ====================
   const schema = useMemo<ModalidadeSchema>(() => {
     if (schemas[modalidade]) return schemas[modalidade];
     return schemas.padrao;
   }, [modalidade]);
 
+  // ==================== ESTADOS DO FORMULÁRIO ====================
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Estados do Notificador
   const [notificadorNome, setNotificadorNome] = useState<string>("");
   const [notificadorEmail, setNotificadorEmail] = useState<string>("");
   const [notificadorTelefone, setNotificadorTelefone] = useState<string>("");
   const [notificadorTipo, setNotificadorTipo] = useState<string>("");
   const [notificadorSetor, setNotificadorSetor] = useState<string>("");
   const [notificadorCategoria, setNotificadorCategoria] = useState<string>("");
-  // Paciente
+  
+  // Estados do Paciente
   const [pacienteNome, setPacienteNome] = useState("");
   const [pacienteProntuario, setPacienteProntuario] = useState("");
   const [pacienteSetor, setPacienteSetor] = useState("");
@@ -191,22 +196,37 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacienteSexo, setPacienteSexo] = useState("");
   const [pacientePeso, setPacientePeso] = useState("");
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
+  
   const [desfechos, setDesfechos] = useState<Desfecho[]>([]);
 
-  // Carregar desfechos ao montar o componente
+  const precisaDesfechos = useMemo(() => {
+    return schema.fields.some(field => 
+      field.id === "desfecho" || field.id === "reacao_desfecho"
+    );
+  }, [schema]);
+
   useEffect(() => {
+    if (!precisaDesfechos) {
+      return;
+    }
+
     const carregarDesfechos = async () => {
       try {
-        const dados = await obterDesfechosErro();
-        console.log('Desfechos carregados:', dados?.length || 0, 'itens');
+        console.log(`Carregando desfechos para modalidade '${modalidade}'...`);
+        
+        const dados = modalidade === "reacao-adversa" 
+          ? await obterDesfechosReacao()
+          : await obterDesfechosErro();
+
+        console.log('desfechos:', dados?.length || 0, 'itens');
         setDesfechos(dados);
       } catch (error) {
-        console.error('Erro ao carregar desfechos:', error);
         toast.error('Erro ao carregar desfechos');
       }
     };
+    
     carregarDesfechos();
-  }, []);
+  }, [precisaDesfechos, modalidade]);
 
   useEffect(() => {
     const notificadorData = {
@@ -237,11 +257,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         if (!notificadorCategoria && parsed.categoria) setNotificadorCategoria(parsed.categoria);
       }
     } catch {
-      // ignore
+      // ts-ignore
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ==================== FUNÇÕES AUXILIARES ====================
   const carregarUltimosDados = () => {
     try {
       const raw = localStorage.getItem("lastNotificadorData");
@@ -255,11 +276,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setNotificadorCategoria(parsed.categoria || "");
       }
     } catch {
-      // ignore
+      // ts-ignore
     }
   };
 
   const set = (id: string, value: unknown) => setForm((p) => ({ ...p, [id]: value }));
+  
   const valAsStr = (id: string): string => {
     const v = form[id];
     return v === undefined || v === null ? "" : String(v);
@@ -655,20 +677,23 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   };
 
-  const patientFields: Field[] = [];
-  const incidentFields = schema.fields;
-
-  // Lógica de exibição condicional de campos de incidente
+  // ==================== LÓGICA DE EXIBIÇÃO CONDICIONAL ====================
   const showField = (f: Field): boolean => {
+    // Campo de medicamentos SNC só aparece se "Sim" for selecionado
     if (f.id === "medicamentosSNC") {
       return form["usoMedicamentosSNC"] === "Sim";
     }
+    // Descrição de efeitos só aparece se houve efeito nocivo
     if (f.id === "descricaoEfeitos") {
       return form["efeitoNocivo"] === "Sim";
     }
     return true;
   };
 
+  // Campos do formulário de incidente (vêm do schema)
+  const incidentFields = schema.fields;
+
+  // ==================== AGRUPAMENTO DE CAMPOS ====================
   const groupConfig = useMemo(() => {
     if (modalidade === "reacao-adversa") {
       return {
@@ -687,11 +712,16 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     return null;
   }, [modalidade]);
 
+  // ==================== RENDERIZAÇÃO DOS CAMPOS DO FORMULÁRIO ====================
   const incidentFieldElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
     const inserted = new Set<string>();
+    
     for (const f of incidentFields) {
+      // Pula campos que não devem ser exibidos
       if (!showField(f)) continue;
+      
+      // Adiciona cabeçalho de grupo se configurado
       if (groupConfig) {
         for (const [groupTitle, ids] of Object.entries(groupConfig)) {
           if (ids.includes(f.id) && !inserted.has(groupTitle)) {
@@ -705,6 +735,8 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           }
         }
       }
+      
+      // Renderiza o campo baseado em seu tipo
       elements.push(
         <div key={f.id} className="space-y-2">
           <Label htmlFor={f.id}>
@@ -732,6 +764,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                 <SelectValue placeholder={(f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0 ? "Carregando desfechos..." : "Selecione"} />
               </SelectTrigger>
               <SelectContent>
+                {/* Campos de desfecho usam dados dinâmicos da API */}
                 {(f.id === "desfecho" || f.id === "reacao_desfecho") ? (
                   desfechos.map((desfecho) => (
                     <SelectItem key={desfecho.idDesfecho} value={String(desfecho.idDesfecho)}>
@@ -758,6 +791,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
               ))}
             </div>
           )}
+          {/* Campos condicionais dentro de multiselect */}
           {f.type === "multiselect" &&
             (f as MultiselectField).children?.map((c) =>
               shouldRenderChild(f.id, c.whenIncludes) ? (

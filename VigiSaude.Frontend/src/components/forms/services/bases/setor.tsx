@@ -5,7 +5,7 @@ export interface DadosSetor {
     nome: string;
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const SetorService = async (): Promise<DadosSetor> => {
     try {
