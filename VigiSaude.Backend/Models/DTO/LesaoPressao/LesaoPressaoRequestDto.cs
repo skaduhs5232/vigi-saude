@@ -1,16 +1,17 @@
-﻿using System.Security.Principal;
+﻿using System.Linq.Expressions;
+using System.Security.Principal;
 using VigiSaude.Backend.Models.DTO.NotificadorDTO;
 using VigiSaude.Backend.Models.DTO.PacienteDTO;
 
 namespace VigiSaude.Backend.Models.DTO.LesaoPressao;
 
-public class RequestNovaLesaoPressaoDto
+public class LesaoPressaoRequestDto
 {
     public required PatienteInfoDto DadosPaciente { get; set; }
     public required LesaoPressaoDto DadosLesaoPresao { get; set; }
     public required NotificadorInfoDto DadosNotificador { get; set; }
 
-    public static explicit operator LesoesPressao(RequestNovaLesaoPressaoDto request)
+    public static explicit operator LesoesPressao(LesaoPressaoRequestDto request)
     {
         return new LesoesPressao
         {
