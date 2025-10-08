@@ -1,35 +1,67 @@
 import axios from 'axios';
-import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse } from '../interfaces/padroes';
+import { ApiResponse } from '../interfaces/padroes';
+import { obterLocaisLesao } from './comum.service';
+
+// Interfaces específicas para Lesão por Pressão conforme Swagger
+export interface DadosPacienteLesaoPressao {
+  idPaciente: number;
+  nome: string;
+  protuario: string;
+  leito: string;
+  sexo: string;
+  peso: number;
+  dataNascimento: string;
+  horaNascimento: string;
+  dataAdmissao: string;
+}
+
+export interface DadosNotificadorLesaoPressao {
+  idNotificador: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  setor: number;
+  categoria: string;
+  funcionarioGerenciaRisco: boolean;
+}
 
 export interface DadosFormularioLesaoPressao {
-  idadeMomentoValor: number;
-  idadeMomentoUnidade: string;
-  dataAdmissao: string;
+  idPaciente: number;
+  idSetor: number;
+  idTipoIncidente: number;
+  idNotificador: number;
+  dataInicio: string;
+  dataFim: string;
+  descricao: string;
+  dataNotificacao: string;
+  classificacaoIncidente: string;
+  classificacaoDano: string;
+  idLesaoPressao: number;
   dataPrimeiraAvaliacao: string;
-  classificacaoRiscoBraden: string;
-  totalEscores: number;
-  reavaliacao48h: string;
-  mobilidadePrejudicada: string;
-  avaliacaoPor: string;
-  registroBradenSAE: string;
-  registroMobilidadeSAE: string;
-  mudancaDecubito: string;
-  intervaloMudanca: string;
+  classificacaoBraden: string;
+  escoreBraden: number;
+  reavaliacao48Horas: string;
+  mobilidadePrejudicada: boolean;
+  responsavelAvaliacao: string;
+  resgistroSAE: string;
+  mudancaDecubito: boolean;
+  intervaloMudanca: number;
   tempoInternacaoLesao: string;
-  localLesao: string[];
+  idLocalLesao: number;
+  descicaoOutro: string;
   estagioLesao: string;
-  usoColchaoDinamico: string;
-  avaliacaoNutricionista: string;
-  registroAvaliacaoNutricional: string;
-  registroAvaliacaoFisioterapia: string;
-  registroIncidenteEnfermagem: string;
+  superficeDinamicaApoio: boolean;
+  solicitacaoAvaliacaoNutri: boolean;
+  registroAvaliacaoNutri: boolean;
+  registroavaliacaoFisio: boolean;
+  registroEnfermagem: boolean;
   usoCoberturaAdequada: string;
 }
 
 export interface PayloadNotificacaoLesaoPressao {
-  dadosPaciente: DadosPaciente;
-  dadosNotificador: DadosNotificador;
+  dadosPaciente: DadosPacienteLesaoPressao;
   dadosLesaoPressao: DadosFormularioLesaoPressao;
+  dadosNotificador: DadosNotificadorLesaoPressao;
 }
 
 const API_BASE_URL = 'http://187.110.234.72:5505';
@@ -44,7 +76,7 @@ export const criarNotificacaoLesaoPressao = async (
     };
 
     const response = await axios.post(
-      `${API_BASE_URL}/api/Incidente`,
+      `${API_BASE_URL}/api/LesaoPressao`,
       payload,
       {
         headers: {
@@ -75,5 +107,6 @@ export const criarNotificacaoLesaoPressao = async (
 };
 
 export default {
-  criarNotificacaoLesaoPressao
+  criarNotificacaoLesaoPressao,
+  obterLocaisLesao
 };

@@ -16,6 +16,7 @@ import { criarNotificacaoFlebite } from "./services/flebite.service";
 import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
 import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, Desfecho } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
+import { useDadosDinamicos } from "./hooks/useDadosDinamicos";
 
 type FieldBase = { id: string; label: string; required?: boolean };
 type TextField = FieldBase & { type: "text" };
@@ -68,6 +69,9 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
       { id: "dataAdmissao", type: "date", label: "Data de admissão", required: true },
       { id: "dataPrimeiraAvaliacao", type: "date", label: "Data 1ª avaliação", required: true },
+      { id: "classificacaoIncidente", type: "select", label: "Classificação do Incidente", required: true, options: ["Incidente sem dano", "Incidente com dano", "Evento adverso", "Quase erro"] },
+      { id: "classificacaoDano", type: "select", label: "Classificação do Dano", required: true, options: ["Nenhum", "Leve", "Moderado", "Grave", "Óbito"] },
+      { id: "descricaoIncidente", type: "textarea", label: "Descrição do Incidente", required: true },
       { id: "classificacaoRiscoBraden", type: "select", label: "Classificação risco (Braden)", required: true, options: ["Sem risco", "Leve", "Moderado", "Elevado", "Muito elevado", "Sem registro"] },
       { id: "totalEscores", type: "number", label: "Total escores", required: true, min: 0 },
       { id: "reavaliacao48h", type: "radio", label: "Reavaliação 48h", required: true, options: ["Sim", "Não", "Sem registro"] },
@@ -170,6 +174,10 @@ export type ModalidadeFormProps = {
 
 export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const navigate = useNavigate();
+  
+  // ==================== DADOS DINÂMICOS DA API ====================
+  const dadosDinamicos = useDadosDinamicos(modalidade);
+  
   // ==================== CONFIGURAÇÃO DO SCHEMA ====================
   const schema = useMemo<ModalidadeSchema>(() => {
     if (schemas[modalidade]) return schemas[modalidade];
@@ -285,6 +293,17 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const valAsStr = (id: string): string => {
     const v = form[id];
     return v === undefined || v === null ? "" : String(v);
+  };
+
+  const simNaoParaBoolean = (valor: unknown): boolean => {
+    const str = String(valor || '');
+    return str.toLowerCase() === 'sim';
+  };
+
+  const extrairNumero = (valor: unknown): number => {
+    const str = String(valor || '');
+    const match = str.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
   };
 
   // Mapear IDs dos campos para nomes legíveis
@@ -441,33 +460,73 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       let resultado;
 
       if (modalidade === "lesao-pressao") {
+        // Determinar idLocalLesao (primeiro item do array convertido para número)
+        const localLesaoArray = Array.isArray(form.localLesao) ? form.localLesao as string[] : [];
+        const idLocalLesao = localLesaoArray.length > 0 ? Number(localLesaoArray[0]) : 0;
+
+        // Unificar registroBradenSAE e registroMobilidadeSAE em resgistroSAE
+        const registroBraden = String(form.registroBradenSAE || '').toLowerCase();
+        const registroMobilidade = String(form.registroMobilidadeSAE || '').toLowerCase();
+        const resgistroSAE = (registroBraden === 'sim' || registroMobilidade === 'sim') ? 'Sim' : 'Não';
+
+        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+
+        // Converter hora de nascimento para formato TimeOnly (HH:mm:ss)
+        const horaNascimento = "00:00:00"; // Valor padrão se não houver hora
+
         const payload = {
+          dadosPaciente: {
+            idPaciente: 0,
+            nome: pacienteNome,
+            protuario: pacienteProntuario,
+            leito: pacienteLeito,
+            sexo: pacienteSexo,
+            peso: Number(pacientePeso) || 0,
+            dataNascimento: pacienteDataNascimento,
+            horaNascimento: horaNascimento,
+            dataAdmissao: String(form.dataAdmissao || new Date().toISOString().split('T')[0])
+          },
           dadosLesaoPressao: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            dataAdmissao: String(form.dataAdmissao || ''),
+            idPaciente: 0,
+            idSetor: Number(pacienteSetor) || 0,
+            idTipoIncidente: 5, // ID para Lesão por Pressão conforme API do swagger, nao sei exatamente oq passar aq
+            idNotificador: 0,
+            dataInicio: String(form.dataAdmissao || new Date().toISOString().split('T')[0]),
+            dataFim: String(form.dataPrimeiraAvaliacao || new Date().toISOString().split('T')[0]),
+            descricao: String(form.descricaoIncidente || ''),
+            dataNotificacao: new Date().toISOString().split('T')[0],
+            classificacaoIncidente: String(form.classificacaoIncidente || ''),
+            classificacaoDano: String(form.classificacaoDano || ''),
+            idLesaoPressao: 0,
             dataPrimeiraAvaliacao: String(form.dataPrimeiraAvaliacao || ''),
-            classificacaoRiscoBraden: String(form.classificacaoRiscoBraden || ''),
-            totalEscores: Number(form.totalEscores) || 0,
-            reavaliacao48h: String(form.reavaliacao48h || ''),
-            mobilidadePrejudicada: String(form.mobilidadePrejudicada || ''),
-            avaliacaoPor: String(form.avaliacaoPor || ''),
-            registroBradenSAE: String(form.registroBradenSAE || ''),
-            registroMobilidadeSAE: String(form.registroMobilidadeSAE || ''),
-            mudancaDecubito: String(form.mudancaDecubito || ''),
-            intervaloMudanca: String(form.intervaloMudanca || ''),
+            classificacaoBraden: String(form.classificacaoRiscoBraden || ''),
+            escoreBraden: Number(form.totalEscores) || 0,
+            reavaliacao48Horas: String(form.reavaliacao48h || ''),
+            mobilidadePrejudicada: simNaoParaBoolean(form.mobilidadePrejudicada),
+            responsavelAvaliacao: String(form.avaliacaoPor || ''),
+            resgistroSAE: resgistroSAE,
+            mudancaDecubito: simNaoParaBoolean(form.mudancaDecubito),
+            intervaloMudanca: extrairNumero(form.intervaloMudanca),
             tempoInternacaoLesao: String(form.tempoInternacaoLesao || ''),
-            localLesao: Array.isArray(form.localLesao) ? form.localLesao as string[] : [],
+            idLocalLesao: idLocalLesao,
+            descicaoOutro: "",
             estagioLesao: String(form.estagioLesao || ''),
-            usoColchaoDinamico: String(form.usoColchaoDinamico || ''),
-            avaliacaoNutricionista: String(form.avaliacaoNutricionista || ''),
-            registroAvaliacaoNutricional: String(form.registroAvaliacaoNutricional || ''),
-            registroAvaliacaoFisioterapia: String(form.registroAvaliacaoFisioterapia || ''),
-            registroIncidenteEnfermagem: String(form.registroIncidenteEnfermagem || ''),
+            superficeDinamicaApoio: simNaoParaBoolean(form.usoColchaoDinamico),
+            solicitacaoAvaliacaoNutri: simNaoParaBoolean(form.avaliacaoNutricionista),
+            registroAvaliacaoNutri: simNaoParaBoolean(form.registroAvaliacaoNutricional),
+            registroavaliacaoFisio: simNaoParaBoolean(form.registroAvaliacaoFisioterapia),
+            registroEnfermagem: simNaoParaBoolean(form.registroIncidenteEnfermagem),
             usoCoberturaAdequada: String(form.usoCoberturaAdequada || '')
           },
-          dadosPaciente,
-          dadosNotificador
+          dadosNotificador: {
+            idNotificador: 0,
+            nome: notificadorNome,
+            email: notificadorEmail,
+            telefone: notificadorTelefone,
+            setor: Number(notificadorSetor) || 0,
+            categoria: notificadorCategoria,
+            funcionarioGerenciaRisco: funcionarioGerenciaRisco
+          }
         };
         resultado = await criarNotificacaoLesaoPressao(payload);
 
@@ -693,6 +752,64 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   // Campos do formulário de incidente (vêm do schema)
   const incidentFields = schema.fields;
 
+  // ==================== FUNÇÕES PARA DADOS DINÂMICOS ====================
+  const isDynamicField = (fieldId: string): boolean => {
+    const dynamicFields = [
+      'tipoQueda', 
+      'localQueda', 
+      'fatoresPredisponentes', 
+      'medicamentosSNC',
+      'localLesao',
+      'localErro' // Setor onde ocorreu o erro
+    ];
+    return dynamicFields.includes(fieldId);
+  };
+
+  const getFieldDynamicData = (fieldId: string): Array<{ id: string; label: string }> => {
+    if (dadosDinamicos.carregando) return [];
+    
+    switch (fieldId) {
+      case 'tipoQueda':
+        return dadosDinamicos.tiposQueda.map(t => ({
+          id: String(t.idTipoQueda),
+          label: t.descricaoTipo
+        }));
+      
+      case 'localQueda':
+        return dadosDinamicos.locaisQueda.map(l => ({
+          id: String(l.idLocalQueda),
+          label: l.descricaoLocal
+        }));
+      
+      case 'fatoresPredisponentes':
+        return dadosDinamicos.fatoresRiscoQueda.map(f => ({
+          id: String(f.idFatorRiscoQueda),
+          label: f.descricaoFator
+        }));
+      
+      case 'medicamentosSNC':
+        return dadosDinamicos.categoriasMedicamentoQueda.map(c => ({
+          id: String(c.idCategoriaMedicamentoQueda),
+          label: c.descricaoCatMedQueda
+        }));
+      
+      case 'localLesao':
+        return dadosDinamicos.locaisLesao.map(l => ({
+          id: String(l.idLocalLesao),
+          label: l.descricaoLocal
+        }));
+      
+      case 'localErro':
+        return dadosDinamicos.setores.map(s => ({
+          id: String(s.idSetor),
+          label: s.descricaoSetor
+        }));
+      
+      default:
+        return [];
+    }
+  };
+
   // ==================== AGRUPAMENTO DE CAMPOS ====================
   const groupConfig = useMemo(() => {
     if (modalidade === "reacao-adversa") {
@@ -759,9 +876,14 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
             </div>
           )}
           {f.type === "select" && (
-            <Select value={valAsStr(f.id)} onValueChange={(v) => set(f.id, v)} disabled={(f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0}>
+            <Select value={valAsStr(f.id)} onValueChange={(v) => set(f.id, v)} disabled={((f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0) || (getFieldDynamicData(f.id).length === 0 && isDynamicField(f.id))}>
               <SelectTrigger>
-                <SelectValue placeholder={(f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0 ? "Carregando desfechos..." : "Selecione"} />
+                <SelectValue placeholder={
+                  ((f.id === "desfecho" || f.id === "reacao_desfecho") && desfechos.length === 0) || 
+                  (getFieldDynamicData(f.id).length === 0 && isDynamicField(f.id))
+                    ? "Carregando..."
+                    : "Selecione"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {/* Campos de desfecho usam dados dinâmicos da API */}
@@ -769,6 +891,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                   desfechos.map((desfecho) => (
                     <SelectItem key={desfecho.idDesfecho} value={String(desfecho.idDesfecho)}>
                       {desfecho.descricaoDesfecho}
+                    </SelectItem>
+                  ))
+                ) : isDynamicField(f.id) ? (
+                  getFieldDynamicData(f.id).map((item) => (
+                    <SelectItem key={item.id} value={String(item.id)}>
+                      {item.label}
                     </SelectItem>
                   ))
                 ) : (
@@ -783,10 +911,10 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           )}
           {f.type === "multiselect" && (
             <div className="grid sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-2">
-              {(f as MultiselectField).options.map((opt) => (
-                <label key={opt} className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-accent/40">
-                  <Checkbox checked={isSelected(f.id, opt)} onCheckedChange={() => toggleMulti(f.id, opt)} />
-                  <span className="text-sm">{prettyLabel(opt)}</span>
+              {(isDynamicField(f.id) ? getFieldDynamicData(f.id) : (f as MultiselectField).options.map(opt => ({ id: opt, label: opt }))).map((opt) => (
+                <label key={opt.id} className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-accent/40">
+                  <Checkbox checked={isSelected(f.id, opt.id)} onCheckedChange={() => toggleMulti(f.id, opt.id)} />
+                  <span className="text-sm">{prettyLabel(opt.label)}</span>
                 </label>
               ))}
             </div>
@@ -822,7 +950,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     }
     return elements;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incidentFields, form, modalidade, groupConfig, desfechos]);
+  }, [incidentFields, form, modalidade, groupConfig, desfechos, dadosDinamicos]);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -862,14 +990,14 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                   <Label>
                     Setor <span className="text-destructive">*</span>
                   </Label>
-                  <Select value={pacienteSetor} onValueChange={setPacienteSetor}>
+                  <Select value={pacienteSetor} onValueChange={setPacienteSetor} disabled={dadosDinamicos.carregando || dadosDinamicos.setores.length === 0}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder={dadosDinamicos.carregando ? "Carregando setores..." : "Selecione"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {setoresOptions.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
+                      {dadosDinamicos.setores.map((s) => (
+                        <SelectItem key={s.idSetor} value={String(s.idSetor)}>
+                          {s.descricaoSetor}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -968,14 +1096,14 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
                   <Label htmlFor="notificadorSetor">
                     Setor <span className="text-destructive">*</span>
                   </Label>
-                  <Select value={notificadorSetor} onValueChange={setNotificadorSetor}>
+                  <Select value={notificadorSetor} onValueChange={setNotificadorSetor} disabled={dadosDinamicos.carregando || dadosDinamicos.setores.length === 0}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder={dadosDinamicos.carregando ? "Carregando setores..." : "Selecione"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {setoresOptions.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
+                      {dadosDinamicos.setores.map((s) => (
+                        <SelectItem key={s.idSetor} value={String(s.idSetor)}>
+                          {s.descricaoSetor}
                         </SelectItem>
                       ))}
                     </SelectContent>

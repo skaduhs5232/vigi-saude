@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse, DadosMedicamento } from '../interfaces/padroes';
+import { Setor, obterSetores } from './comum.service';
 
 export interface DadosFormularioErroMedicacao {
     idadeMomentoValor: number;
@@ -104,5 +105,6 @@ export const obterDesfechos = async (): Promise<Desfecho[]> => {
 
 export default {
     criarNotificacaoErroMedicacao,
-    obterDesfechos
+    obterDesfechos,
+    obterSetores
 };

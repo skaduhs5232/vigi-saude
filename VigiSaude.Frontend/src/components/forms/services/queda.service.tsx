@@ -1,5 +1,15 @@
 import axios from 'axios';
 import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse } from '../interfaces/padroes';
+import { 
+  TipoQueda, 
+  LocalQueda, 
+  FatorRiscoQueda, 
+  CategoriaMedicamentoQueda,
+  obterTiposQueda,
+  obterLocaisQueda,
+  obterFatoresRiscoQueda,
+  obterCategoriasMedicamentoQueda
+} from './comum.service';
 
 export interface DadosFormularioQueda {
   idadeMomentoValor: number;
@@ -72,5 +82,9 @@ export const criarNotificacaoQueda = async (
 };
 
 export default {
-  criarNotificacaoQueda
+  criarNotificacaoQueda,
+  obterTiposQueda,
+  obterLocaisQueda,
+  obterFatoresRiscoQueda,
+  obterCategoriasMedicamentoQueda
 };

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse, DadosMedicamento } from '../interfaces/padroes';
+import { Setor, obterSetores } from './comum.service';
 
 export interface DadosFormularioFlebite {
     idadeMomentoValor: number;
@@ -78,5 +79,6 @@ export const criarNotificacaoFlebite = async (
 };
 
 export default {
-    criarNotificacaoFlebite
+    criarNotificacaoFlebite,
+    obterSetores
 };
