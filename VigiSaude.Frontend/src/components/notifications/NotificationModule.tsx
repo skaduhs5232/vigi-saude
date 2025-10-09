@@ -12,6 +12,7 @@ import * as XLSX from "xlsx";
 import { CreateNotificationDialog } from "./CreateNotificationDialog";
 import { Notifier } from "@/components/notifier/NotifierForm";
 import { NotifierDialog } from "@/components/notifier/NotifierDialog";
+import { getLesaoById, PayloadNotificacaoLesaoPressao } from "@/components/forms/services/lesao-pressao.service";
 
 export type NotificationRecord = {
   id: string | number;
@@ -82,22 +83,68 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
     return tipoMap[tipo] || "padrao";
   };
 
+  React.useEffect(() => {
+    setRows(dados);
+  }, [dados]);
+
   // Função para editar notificação - navegar para formulário
-  const editarNotificacao = (notificacao: NotificationRecord) => {
+  const editarNotificacao = async (notificacao: NotificationRecord) => {
     const modalidade = notificacao.modalidade || getModalidadeFromTipo(notificacao.tipo);
-    
-    // Salvar dados da notificação no localStorage para carregar no formulário
-    const dadosEdicao = {
+  const dadosEdicao = {
       isEdit: true,
+      modalidade,
       notificationId: notificacao.id,
       dadosFormulario: notificacao.dadosFormulario || {},
       dadosPaciente: notificacao.dadosPaciente || {},
       dadosNotificador: notificacao.dadosNotificador || {},
+    } as {
+      isEdit: boolean;
+      modalidade: string;
+      notificationId: string | number;
+      dadosFormulario: Record<string, unknown>;
+      dadosPaciente: NotificationRecord["dadosPaciente"];
+      dadosNotificador: NotificationRecord["dadosNotificador"];
+      payload?: PayloadNotificacaoLesaoPressao;
     };
-    
-    localStorage.setItem("editNotificationData", JSON.stringify(dadosEdicao));
-    
-    // Navegar para o formulário
+
+    if (modalidade === "lesao-pressao") {
+      const incidenteId = Number(notificacao.id);
+      if (Number.isNaN(incidenteId) || incidenteId <= 0) {
+        toast.error("Não foi possível identificar a notificação para edição.");
+        return;
+      }
+
+      const loadingId = toast.loading("Carregando dados da lesão...");
+      try {
+        const detalhes = await getLesaoById(incidenteId);
+        toast.dismiss(loadingId);
+        if (!detalhes.success || !detalhes.data) {
+          toast.error(detalhes.message || "Não foi possível carregar os dados da lesão.");
+          return;
+        }
+        let payload: PayloadNotificacaoLesaoPressao | undefined;
+        const dadosResposta = detalhes.data as PayloadNotificacaoLesaoPressao | PayloadNotificacaoLesaoPressao[];
+        if (Array.isArray(dadosResposta)) {
+          payload = dadosResposta[0];
+        } else {
+          payload = dadosResposta;
+        }
+
+        if (!payload) {
+          toast.error("Nenhum dado de lesão encontrado para edição.");
+          return;
+        }
+
+        dadosEdicao.payload = payload;
+      } catch (error) {
+        toast.dismiss(loadingId);
+        console.error("Erro ao carregar lesão para edição:", error);
+        toast.error("Erro inesperado ao carregar dados para edição.");
+        return;
+      }
+    }
+
+  localStorage.setItem("editNotificationData", JSON.stringify(dadosEdicao));
     navigate(`/form/${modalidade}`);
   };
 

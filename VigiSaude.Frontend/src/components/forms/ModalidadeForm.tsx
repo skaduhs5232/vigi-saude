@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { 
-  criarNotificacaoLesaoPressao
+  criarNotificacaoLesaoPressao,
+  putLesaoPressao,
+  PayloadNotificacaoLesaoPressao
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
 import { criarNotificacaoFlebite } from "./services/flebite.service";
@@ -206,6 +208,9 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
   
   const [desfechos, setDesfechos] = useState<Desfecho[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editNotificationId, setEditNotificationId] = useState<number | null>(null);
+  const [originalLesaoPayload, setOriginalLesaoPayload] = useState<PayloadNotificacaoLesaoPressao | null>(null);
 
   const precisaDesfechos = useMemo(() => {
     return schema.fields.some(field => 
@@ -270,6 +275,154 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const booleanToRadioValue = useCallback((valor: boolean | null | undefined, allowSemRegistro = false): string => {
+    if (valor === true) return "Sim";
+    if (valor === false) return "Não";
+    return allowSemRegistro ? "Sem registro" : "";
+  }, []);
+
+  const intervaloNumeroParaOpcao = useCallback((valor: number | null | undefined): string => {
+    if (valor === 2) return "2h";
+    if (valor === 3) return "3h";
+    return valor !== undefined && valor !== null && valor !== 0 ? "Outro" : "";
+  }, []);
+
+  const preencherFormularioLesaoPressao = useCallback((payload: PayloadNotificacaoLesaoPressao) => {
+    if (!payload) return;
+
+    const paciente = payload.dadosPaciente;
+    const lesao = payload.dadosLesaoPressao;
+    const notificador = payload.dadosNotificador;
+
+    if (paciente) {
+  const pacienteRecord = paciente as unknown as Record<string, unknown>;
+      const prontuario = pacienteRecord.prontuario ?? pacienteRecord.protuario ?? "";
+      const setorPaciente = pacienteRecord.setor ?? null;
+      const pesoPaciente = pacienteRecord.peso ?? pacienteRecord.pesoKg ?? null;
+
+      setPacienteNome(paciente.nome || "");
+      setPacienteProntuario(String(prontuario || ""));
+      setPacienteSetor(
+        lesao?.idSetor !== undefined && lesao?.idSetor !== null
+          ? String(lesao.idSetor)
+          : setorPaciente !== null && setorPaciente !== undefined
+            ? String(setorPaciente)
+            : ""
+      );
+      setPacienteLeito(paciente.leito || "");
+      setPacienteSexo(paciente.sexo || "");
+      setPacientePeso(pesoPaciente !== null && pesoPaciente !== undefined ? String(pesoPaciente) : "");
+      setPacienteDataNascimento(paciente.dataNascimento || "");
+    }
+
+    if (notificador) {
+      setNotificadorNome(notificador.nome || "");
+      setNotificadorEmail(notificador.email || "");
+      setNotificadorTelefone(notificador.telefone || "");
+      setNotificadorTipo(notificador.funcionarioGerenciaRisco ? "Funcionário da gerência de risco" : "Não");
+      setNotificadorSetor(notificador.setor !== undefined && notificador.setor !== null ? String(notificador.setor) : "");
+      setNotificadorCategoria(notificador.categoria || "");
+    }
+
+    if (lesao) {
+      const valoresFormulario: Record<string, unknown> = {
+        dataAdmissao: paciente?.dataAdmissao || lesao.dataInicio || "",
+        dataPrimeiraAvaliacao: lesao.dataPrimeiraAvaliacao || "",
+        classificacaoIncidente: lesao.classificacaoIncidente || "",
+        classificacaoDano: lesao.classificacaoDano || "",
+        descricaoIncidente: lesao.descricao || "",
+        classificacaoRiscoBraden: lesao.classificacaoBraden || "",
+        totalEscores: lesao.escoreBraden ?? "",
+        reavaliacao48h: lesao.reavaliacao48Horas || "",
+        mobilidadePrejudicada: booleanToRadioValue(lesao.mobilidadePrejudicada, true),
+        avaliacaoPor: lesao.responsavelAvaliacao || "",
+        registroBradenSAE: lesao.resgistroSAE || "",
+        registroMobilidadeSAE: lesao.resgistroSAE || "",
+        mudancaDecubito: booleanToRadioValue(lesao.mudancaDecubito),
+        intervaloMudanca: intervaloNumeroParaOpcao(lesao.intervaloMudanca),
+        tempoInternacaoLesao: lesao.tempoInternacaoLesao || "",
+        localLesao: lesao.idLocalLesao && lesao.idLocalLesao > 0 ? [String(lesao.idLocalLesao)] : [],
+        estagioLesao: lesao.estagioLesao || "",
+        usoColchaoDinamico: booleanToRadioValue(lesao.superficeDinamicaApoio),
+        avaliacaoNutricionista: booleanToRadioValue(lesao.solicitacaoAvaliacaoNutri),
+        registroAvaliacaoNutricional: booleanToRadioValue(lesao.registroAvaliacaoNutri),
+        registroAvaliacaoFisioterapia: booleanToRadioValue(lesao.registroavaliacaoFisio),
+        registroIncidenteEnfermagem: booleanToRadioValue(lesao.registroEnfermagem),
+        usoCoberturaAdequada: lesao.usoCoberturaAdequada || "",
+  descricaoOutro: (lesao as unknown as Record<string, unknown>)?.descricaoOutro ?? (lesao as unknown as Record<string, unknown>)?.descicaoOutro ?? "",
+      };
+
+      setForm((prev) => ({ ...prev, ...valoresFormulario }));
+    }
+  }, [booleanToRadioValue, intervaloNumeroParaOpcao]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("editNotificationData");
+      if (!raw) {
+        setIsEditMode(false);
+        setOriginalLesaoPayload(null);
+        setEditNotificationId(null);
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.isEdit) {
+        setIsEditMode(false);
+        setOriginalLesaoPayload(null);
+        setEditNotificationId(null);
+        return;
+      }
+
+      if (parsed.modalidade && parsed.modalidade !== modalidade) {
+        setIsEditMode(false);
+        setOriginalLesaoPayload(null);
+        setEditNotificationId(null);
+        return;
+      }
+
+      setIsEditMode(true);
+
+      const notificationId = Number(parsed.notificationId);
+      const hasValidId = !Number.isNaN(notificationId);
+      setEditNotificationId(hasValidId ? notificationId : null);
+
+      if (modalidade === "lesao-pressao" && parsed.payload) {
+        const payload = parsed.payload as PayloadNotificacaoLesaoPressao;
+        setOriginalLesaoPayload(payload);
+        const lesaoIdRaw = payload.dadosLesaoPressao?.idLesaoPressao ?? parsed.notificationId;
+        const lesaoId = Number(lesaoIdRaw);
+        if (!Number.isNaN(lesaoId)) {
+          setEditNotificationId(lesaoId);
+        }
+        preencherFormularioLesaoPressao(payload);
+      } else {
+        if (parsed.dadosFormulario) {
+          setForm((prev) => ({ ...prev, ...parsed.dadosFormulario }));
+        }
+
+        const dadosPaciente = parsed.dadosPaciente || {};
+        if (dadosPaciente.nome !== undefined) setPacienteNome(dadosPaciente.nome || "");
+        if (dadosPaciente.prontuario !== undefined) setPacienteProntuario(dadosPaciente.prontuario || "");
+        if (dadosPaciente.setor !== undefined) setPacienteSetor(String(dadosPaciente.setor || ""));
+        if (dadosPaciente.leito !== undefined) setPacienteLeito(dadosPaciente.leito || "");
+        if (dadosPaciente.sexo !== undefined) setPacienteSexo(dadosPaciente.sexo || "");
+        if (dadosPaciente.peso !== undefined) setPacientePeso(String(dadosPaciente.peso || ""));
+        if (dadosPaciente.dataNascimento !== undefined) setPacienteDataNascimento(dadosPaciente.dataNascimento || "");
+
+        const dadosNotificador = parsed.dadosNotificador || {};
+        if (dadosNotificador.nome !== undefined) setNotificadorNome(dadosNotificador.nome || "");
+        if (dadosNotificador.email !== undefined) setNotificadorEmail(dadosNotificador.email || "");
+        if (dadosNotificador.telefone !== undefined) setNotificadorTelefone(dadosNotificador.telefone || "");
+        if (dadosNotificador.tipo !== undefined) setNotificadorTipo(dadosNotificador.tipo || "");
+        if (dadosNotificador.setor !== undefined) setNotificadorSetor(String(dadosNotificador.setor || ""));
+        if (dadosNotificador.categoria !== undefined) setNotificadorCategoria(dadosNotificador.categoria || "");
+      }
+    } catch (error) {
+      console.error("Erro ao preparar dados para edição:", error);
+    }
+  }, [modalidade, preencherFormularioLesaoPressao]);
+
   // ==================== FUNÇÕES AUXILIARES ====================
   const carregarUltimosDados = () => {
     try {
@@ -305,6 +458,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     const match = str.match(/\d+/);
     return match ? parseInt(match[0], 10) : 0;
   };
+
 
   // Mapear IDs dos campos para nomes legíveis
   const getFieldDisplayName = (fieldId: string): string => {
@@ -451,7 +605,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       categoria: notificadorCategoria,
     };
 
-    toast.info("Criando notificação...", {
+    toast.info(isEditMode ? "Atualizando notificação..." : "Criando notificação...", {
       position: "top-right",
       autoClose: 2000,
     });
@@ -460,75 +614,97 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       let resultado;
 
       if (modalidade === "lesao-pressao") {
-        // Determinar idLocalLesao (primeiro item do array convertido para número)
-        const localLesaoArray = Array.isArray(form.localLesao) ? form.localLesao as string[] : [];
-        const idLocalLesao = localLesaoArray.length > 0 ? Number(localLesaoArray[0]) : 0;
+        const lesaoOriginal = originalLesaoPayload?.dadosLesaoPressao;
+        const pacienteOriginal = originalLesaoPayload?.dadosPaciente;
+        const notificadorOriginal = originalLesaoPayload?.dadosNotificador;
 
-        // Unificar registroBradenSAE e registroMobilidadeSAE em resgistroSAE
+        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+
         const registroBraden = String(form.registroBradenSAE || '').toLowerCase();
         const registroMobilidade = String(form.registroMobilidadeSAE || '').toLowerCase();
         const resgistroSAE = (registroBraden === 'sim' || registroMobilidade === 'sim') ? 'Sim' : 'Não';
 
-        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+        const localLesaoArray = Array.isArray(form.localLesao) ? (form.localLesao as string[]) : [];
+        const idLocalLesao = localLesaoArray.length > 0
+          ? Number(localLesaoArray[0])
+          : lesaoOriginal?.idLocalLesao ?? 0;
 
-        // Converter hora de nascimento para formato TimeOnly (HH:mm:ss)
-        const horaNascimento = "00:00:00"; // Valor padrão se não houver hora
+        const pacienteId = pacienteOriginal?.idPaciente ?? 0;
+        const notificadorId = notificadorOriginal?.idNotificador ?? 0;
+        const lesaoId = isEditMode
+          ? (lesaoOriginal?.idLesaoPressao ?? editNotificationId ?? 0)
+          : 0;
 
-        const payload = {
+        const dataAdmissao = String(
+          form.dataAdmissao || pacienteOriginal?.dataAdmissao || new Date().toISOString().split('T')[0]
+        );
+        const dataPrimeiraAvaliacao = String(form.dataPrimeiraAvaliacao || lesaoOriginal?.dataPrimeiraAvaliacao || '');
+        const dataFim = String(form.dataPrimeiraAvaliacao || lesaoOriginal?.dataFim || dataPrimeiraAvaliacao);
+        const dataNotificacao = isEditMode && lesaoOriginal?.dataNotificacao
+          ? lesaoOriginal.dataNotificacao
+          : new Date().toISOString().split('T')[0];
+        const horaNascimento = pacienteOriginal?.horaNascimento || "00:00:00";
+
+        const payload: PayloadNotificacaoLesaoPressao = {
           dadosPaciente: {
-            idPaciente: 0,
+            idPaciente: pacienteId,
             nome: pacienteNome,
             protuario: pacienteProntuario,
             leito: pacienteLeito,
             sexo: pacienteSexo,
             peso: Number(pacientePeso) || 0,
             dataNascimento: pacienteDataNascimento,
-            horaNascimento: horaNascimento,
-            dataAdmissao: String(form.dataAdmissao || new Date().toISOString().split('T')[0])
+            horaNascimento,
+            dataAdmissao,
           },
           dadosLesaoPressao: {
-            idPaciente: 0,
-            idSetor: Number(pacienteSetor) || 0,
-            idTipoIncidente: 5, // ID para Lesão por Pressão conforme API do swagger, nao sei exatamente oq passar aq
-            idNotificador: 0,
-            dataInicio: String(form.dataAdmissao || new Date().toISOString().split('T')[0]),
-            dataFim: String(form.dataPrimeiraAvaliacao || new Date().toISOString().split('T')[0]),
-            descricao: String(form.descricaoIncidente || ''),
-            dataNotificacao: new Date().toISOString().split('T')[0],
-            classificacaoIncidente: String(form.classificacaoIncidente || ''),
-            classificacaoDano: String(form.classificacaoDano || ''),
-            idLesaoPressao: 0,
-            dataPrimeiraAvaliacao: String(form.dataPrimeiraAvaliacao || ''),
-            classificacaoBraden: String(form.classificacaoRiscoBraden || ''),
-            escoreBraden: Number(form.totalEscores) || 0,
-            reavaliacao48Horas: String(form.reavaliacao48h || ''),
-            mobilidadePrejudicada: simNaoParaBoolean(form.mobilidadePrejudicada),
-            responsavelAvaliacao: String(form.avaliacaoPor || ''),
-            resgistroSAE: resgistroSAE,
-            mudancaDecubito: simNaoParaBoolean(form.mudancaDecubito),
-            intervaloMudanca: extrairNumero(form.intervaloMudanca),
-            tempoInternacaoLesao: String(form.tempoInternacaoLesao || ''),
-            idLocalLesao: idLocalLesao,
-            descicaoOutro: "",
-            estagioLesao: String(form.estagioLesao || ''),
-            superficeDinamicaApoio: simNaoParaBoolean(form.usoColchaoDinamico),
-            solicitacaoAvaliacaoNutri: simNaoParaBoolean(form.avaliacaoNutricionista),
-            registroAvaliacaoNutri: simNaoParaBoolean(form.registroAvaliacaoNutricional),
-            registroavaliacaoFisio: simNaoParaBoolean(form.registroAvaliacaoFisioterapia),
-            registroEnfermagem: simNaoParaBoolean(form.registroIncidenteEnfermagem),
-            usoCoberturaAdequada: String(form.usoCoberturaAdequada || '')
+            idPaciente: pacienteId,
+            idSetor: pacienteSetor ? Number(pacienteSetor) : (lesaoOriginal?.idSetor ?? 0),
+            idTipoIncidente: 5,
+            idNotificador: notificadorId,
+            dataInicio: dataAdmissao,
+            dataFim,
+            descricao: String(form.descricaoIncidente || lesaoOriginal?.descricao || ''),
+            dataNotificacao,
+            classificacaoIncidente: String(form.classificacaoIncidente || lesaoOriginal?.classificacaoIncidente || ''),
+            classificacaoDano: String(form.classificacaoDano || lesaoOriginal?.classificacaoDano || ''),
+            idLesaoPressao: lesaoId || undefined,
+            dataPrimeiraAvaliacao,
+            classificacaoBraden: String(form.classificacaoRiscoBraden || lesaoOriginal?.classificacaoBraden || ''),
+            escoreBraden: Number(form.totalEscores) || lesaoOriginal?.escoreBraden || 0,
+            reavaliacao48Horas: String(form.reavaliacao48h || lesaoOriginal?.reavaliacao48Horas || ''),
+            mobilidadePrejudicada: simNaoParaBoolean(form.mobilidadePrejudicada || (lesaoOriginal?.mobilidadePrejudicada ? 'Sim' : 'Não')),
+            responsavelAvaliacao: String(form.avaliacaoPor || lesaoOriginal?.responsavelAvaliacao || ''),
+            resgistroSAE,
+            mudancaDecubito: simNaoParaBoolean(form.mudancaDecubito || (lesaoOriginal?.mudancaDecubito ? 'Sim' : 'Não')),
+            intervaloMudanca: form.intervaloMudanca ? extrairNumero(form.intervaloMudanca) : (lesaoOriginal?.intervaloMudanca ?? 0),
+            tempoInternacaoLesao: String(form.tempoInternacaoLesao || lesaoOriginal?.tempoInternacaoLesao || ''),
+            idLocalLesao,
+            descicaoOutro: lesaoOriginal?.descicaoOutro || "",
+            estagioLesao: String(form.estagioLesao || lesaoOriginal?.estagioLesao || ''),
+            superficeDinamicaApoio: simNaoParaBoolean(form.usoColchaoDinamico || (lesaoOriginal?.superficeDinamicaApoio ? 'Sim' : 'Não')),
+            solicitacaoAvaliacaoNutri: simNaoParaBoolean(form.avaliacaoNutricionista || (lesaoOriginal?.solicitacaoAvaliacaoNutri ? 'Sim' : 'Não')),
+            registroAvaliacaoNutri: simNaoParaBoolean(form.registroAvaliacaoNutricional || (lesaoOriginal?.registroAvaliacaoNutri ? 'Sim' : 'Não')),
+            registroavaliacaoFisio: simNaoParaBoolean(form.registroAvaliacaoFisioterapia || (lesaoOriginal?.registroavaliacaoFisio ? 'Sim' : 'Não')),
+            registroEnfermagem: simNaoParaBoolean(form.registroIncidenteEnfermagem || (lesaoOriginal?.registroEnfermagem ? 'Sim' : 'Não')),
+            usoCoberturaAdequada: String(form.usoCoberturaAdequada || lesaoOriginal?.usoCoberturaAdequada || ''),
           },
           dadosNotificador: {
-            idNotificador: 0,
+            idNotificador: notificadorId,
             nome: notificadorNome,
             email: notificadorEmail,
             telefone: notificadorTelefone,
-            setor: Number(notificadorSetor) || 0,
+            setor: notificadorSetor ? Number(notificadorSetor) : (notificadorOriginal?.setor ?? 0),
             categoria: notificadorCategoria,
-            funcionarioGerenciaRisco: funcionarioGerenciaRisco
-          }
+            funcionarioGerenciaRisco: funcionarioGerenciaRisco,
+          },
         };
-        resultado = await criarNotificacaoLesaoPressao(payload);
+
+        if (isEditMode && lesaoId > 0) {
+          resultado = await putLesaoPressao(lesaoId, payload);
+        } else {
+          resultado = await criarNotificacaoLesaoPressao(payload);
+        }
 
       } else if (modalidade === "queda") {
         const payload = {
@@ -672,7 +848,9 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       }
 
       if (resultado?.success) {
-        toast.success(resultado.message || "Notificação criada com sucesso!", {
+        toast.success(
+          resultado.message || (isEditMode ? "Notificação atualizada com sucesso!" : "Notificação criada com sucesso!"),
+          {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -682,9 +860,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         });
 
         console.log('Notificação processada com sucesso:', resultado);
+        if (isEditMode) {
+          localStorage.removeItem("editNotificationData");
+        }
         setTimeout(() => navigate(-1), 1500);
       } else {
-        toast.error(resultado?.message || "Erro ao processar notificação", {
+        toast.error(resultado?.message || (isEditMode ? "Erro ao atualizar notificação" : "Erro ao processar notificação"), {
           position: "top-right",
           autoClose: 5000,
           hideProgressBar: false,

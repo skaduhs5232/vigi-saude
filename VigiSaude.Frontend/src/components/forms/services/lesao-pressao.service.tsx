@@ -26,17 +26,17 @@ export interface DadosNotificadorLesaoPressao {
 }
 
 export interface DadosFormularioLesaoPressao {
-  idPaciente: number;
+  idPaciente?: number;
   idSetor: number;
   idTipoIncidente: number;
-  idNotificador: number;
+  idNotificador?: number;
   dataInicio: string;
   dataFim: string;
   descricao: string;
   dataNotificacao: string;
   classificacaoIncidente: string;
   classificacaoDano: string;
-  idLesaoPressao: number;
+  idLesaoPressao?: number;
   dataPrimeiraAvaliacao: string;
   classificacaoBraden: string;
   escoreBraden: number;
@@ -106,7 +106,97 @@ export const criarNotificacaoLesaoPressao = async (
   }
 };
 
+export const getTodasLesoesPressao = async (): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/LesaoPressao/GetTodasLesoesPressao?tipoincidente=5`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoLesaoPressao[],
+      message: 'Lesões por pressão recuperadas com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar lesões por pressão:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar lesões',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const getLesaoById = async (codigoLesao: number): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/LesaoPressao/GetLesaoPressaoPorId?idIncidente=${codigoLesao}&tipoincidente=5`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoLesaoPressao,
+      message: 'Lesão por pressão recuperada com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar lesão por pressão:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar lesão',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const putLesaoPressao = async (codigoLesao: number, objLesao: PayloadNotificacaoLesaoPressao): Promise<ApiResponse> => {
+   try {
+    const response = await axios.put(`${API_BASE_URL}/api/LesaoPressao/AtualizarLesaoPressao/${codigoLesao}`, objLesao, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data,
+      message: 'Lesões por pressão atualizadas com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar lesões por pressão:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar lesões',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
 export default {
   criarNotificacaoLesaoPressao,
-  obterLocaisLesao
+  obterLocaisLesao,
+  getTodasLesoesPressao,
+  putLesaoPressao,
+  getLesaoById
 };
