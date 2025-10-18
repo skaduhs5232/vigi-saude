@@ -7,7 +7,7 @@ public partial class FatoresRiscoQuedum
 {
     public int IdFatorRiscoQueda { get; set; }
 
-    public string DescricaoFator { get; set; } = null!;
+    public string? DescricaoFator { get; set; }
 
     public virtual ICollection<Queda> QuedaIdIncidentes { get; set; } = new List<Queda>();
 }
