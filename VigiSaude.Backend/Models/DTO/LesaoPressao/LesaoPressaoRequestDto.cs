@@ -8,7 +8,7 @@ namespace VigiSaude.Backend.Models.DTO.LesaoPressao;
 public class LesaoPressaoRequestDto
 {
     public required PatienteInfoDto DadosPaciente { get; set; }
-    public required LesaoPressaoDto DadosLesaoPresao { get; set; }
+    public required LesaoPressaoDto DadosLesaoPressao { get; set; }
     public required NotificadorInfoDto DadosNotificador { get; set; }
 
     public static explicit operator LesoesPressao(LesaoPressaoRequestDto request)
@@ -18,35 +18,35 @@ public class LesaoPressaoRequestDto
             IdIncidenteNavigation = new Incidente
             {
                 PacienteIdPaciente = (int)request.DadosPaciente.IdPaciente!,
-                SetorIdSetor = request.DadosLesaoPresao.IdSetor,
-                TipoIncidenteIdTipoIncidente = request.DadosLesaoPresao.IdTipoIncidente,
-                NotificadorIdNotificador = request.DadosLesaoPresao.IdNotificador,
-                DataInicio = request.DadosLesaoPresao.DataInicio,
-                DataFim = request.DadosLesaoPresao.DataFim,
-                Descricao = request.DadosLesaoPresao.Descricao,
-                DataNotificacao = request.DadosLesaoPresao.DataNotificacao,
-                ClassificacaoIncidente = request.DadosLesaoPresao.ClassificacaoIncidente,
-                ClassificacaoDano = request.DadosLesaoPresao.ClassificacaoDano,
+                SetorIdSetor = request.DadosLesaoPressao.IdSetor,
+                TipoIncidenteIdTipoIncidente = request.DadosLesaoPressao.IdTipoIncidente,
+                NotificadorIdNotificador = (int)request.DadosLesaoPressao.IdNotificador!,
+                DataInicio = request.DadosLesaoPressao.DataInicio,
+                DataFim = request.DadosLesaoPressao.DataFim,
+                Descricao = request.DadosLesaoPressao.Descricao,
+                DataNotificacao = request.DadosLesaoPressao.DataNotificacao,
+                ClassificacaoIncidente = request.DadosLesaoPressao.ClassificacaoIncidente,
+                ClassificacaoDano = request.DadosLesaoPressao.ClassificacaoDano,
             },
-            DataPrimeiraAvaliacao = request.DadosLesaoPresao.DataPrimeiraAvaliacao,
-            ClassificacaoBraden = request.DadosLesaoPresao.ClassificacaoBraden,
-            EscoreBraden = request.DadosLesaoPresao.EscoreBraden,
-            Reavaliacao48h = request.DadosLesaoPresao.Reavaliacao48Horas,
-            MobilidadePrejudicada = request.DadosLesaoPresao.MobilidadePrejudicada,
-            ResponsávelAvaliacao = request.DadosLesaoPresao.ResponsavelAvaliacao,
-            RegistroSae = request.DadosLesaoPresao.ResgistroSAE,
-            MudancaDecubito = request.DadosLesaoPresao.MudancaDecubito,
-            IntervaloMudanca = request.DadosLesaoPresao.IntervaloMudanca,
-            TempoInternacaoAteLesao = request.DadosLesaoPresao.TempoInternacaoLesao,
-            LocalLesaoIdLocalLesao = request.DadosLesaoPresao.IdLesaoPressao,
-            DescricaoOutro = request.DadosLesaoPresao.DescicaoOutro,
-            EstagioLesao = request.DadosLesaoPresao.EstagioLesao,
-            SuperficieDinamicaApoio = request.DadosLesaoPresao.SuperficeDinamicaApoio,
-            SolicitacaoAvaliacaoNutri = request.DadosLesaoPresao.SolicitacaoAvaliacaoNutri,
-            RegistroAvaliacaoNutri = request.DadosLesaoPresao.RegistroAvaliacaoNutri,
-            RegistroAvaliacaoFisio = request.DadosLesaoPresao.RegistroavaliacaoFisio,
-            RegistroEnfermagem = request.DadosLesaoPresao.RegistroEnfermagem,
-            UsoCoberturaAdequada = request.DadosLesaoPresao.UsoCoberturaAdequada,
+            DataPrimeiraAvaliacao = request.DadosLesaoPressao.DataPrimeiraAvaliacao,
+            ClassificacaoBraden = request.DadosLesaoPressao.ClassificacaoBraden,
+            EscoreBraden = request.DadosLesaoPressao.EscoreBraden,
+            Reavaliacao48h = request.DadosLesaoPressao.Reavaliacao48Horas,
+            MobilidadePrejudicada = request.DadosLesaoPressao.MobilidadePrejudicada,
+            ResponsávelAvaliacao = request.DadosLesaoPressao.ResponsavelAvaliacao,
+            RegistroSae = request.DadosLesaoPressao.ResgistroSAE,
+            MudancaDecubito = request.DadosLesaoPressao.MudancaDecubito,
+            IntervaloMudanca = request.DadosLesaoPressao.IntervaloMudanca,
+            TempoInternacaoAteLesao = request.DadosLesaoPressao.TempoInternacaoLesao,
+            LocalLesaoIdLocalLesao = request.DadosLesaoPressao.IdLesaoPressao,
+            DescricaoOutro = request.DadosLesaoPressao.DescicaoOutro,
+            EstagioLesao = request.DadosLesaoPressao.EstagioLesao,
+            SuperficieDinamicaApoio = request.DadosLesaoPressao.SuperficeDinamicaApoio,
+            SolicitacaoAvaliacaoNutri = request.DadosLesaoPressao.SolicitacaoAvaliacaoNutri,
+            RegistroAvaliacaoNutri = request.DadosLesaoPressao.RegistroAvaliacaoNutri,
+            RegistroAvaliacaoFisio = request.DadosLesaoPressao.RegistroavaliacaoFisio,
+            RegistroEnfermagem = request.DadosLesaoPressao.RegistroEnfermagem,
+            UsoCoberturaAdequada = request.DadosLesaoPressao.UsoCoberturaAdequada,
         };
     }
 }

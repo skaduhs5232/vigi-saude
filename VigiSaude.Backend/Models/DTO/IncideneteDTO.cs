@@ -5,7 +5,7 @@ public class IncideneteDto
     public int? IdPaciente { get; set; }
     public required int IdSetor { get; set; }
     public required int IdTipoIncidente { get; set; }
-    public required int IdNotificador { get; set; }
+    public int? IdNotificador { get; set; }
     public required DateOnly DataInicio { get; set; }
     public DateOnly? DataFim { get; set; }
     public required string Descricao { get; set; }
