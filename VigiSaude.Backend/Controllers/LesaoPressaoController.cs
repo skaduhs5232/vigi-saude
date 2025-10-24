@@ -22,13 +22,13 @@ public class LesaoPressaoController(VigisaudeDbContext context) : ControllerBase
         context.Pacientes.Add(novoPaciente);
         context.SaveChanges();
         request.DadosPaciente.IdPaciente = novoPaciente.IdPaciente;
-        request.DadosLesaoPresao.IdPaciente = novoPaciente.IdPaciente;
+        request.DadosLesaoPressao.IdPaciente = novoPaciente.IdPaciente;
 
         Notificadore novoNotificador = (Notificadore)request.DadosNotificador;
         context.Notificadores.Add(novoNotificador);
         context.SaveChanges();
         request.DadosNotificador.IdNotificador = novoNotificador.IdNotificador;
-        request.DadosLesaoPresao.IdNotificador = novoNotificador.IdNotificador;
+        request.DadosLesaoPressao.IdNotificador = novoNotificador.IdNotificador;
 
         await context.LesoesPressaos.AddAsync((LesoesPressao)request);
         await context.SaveChangesAsync();
@@ -73,7 +73,7 @@ public class LesaoPressaoController(VigisaudeDbContext context) : ControllerBase
     }
 
     [HttpPut("AtualizarLesaoPressao/{idIncidente}")]
-    public async Task<IActionResult> AtualizarLesaoPressao(int idIncidente, [FromBody] LesaoPressaoResponseDto request)
+    public async Task<IActionResult> AtualizarLesaoPressao(int idIncidente, [FromBody] LesaoPressaoRequestDto request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
