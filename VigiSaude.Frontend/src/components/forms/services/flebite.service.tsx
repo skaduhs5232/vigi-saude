@@ -1,42 +1,71 @@
 import axios from 'axios';
-import { DadosNotificador, DadosPaciente, PayloadNotificacao, ApiResponse, DadosMedicamento } from '../interfaces/padroes';
-import { Setor, obterSetores } from './comum.service';
+import { ApiResponse } from '../interfaces/padroes';
+import { obterSetores } from './comum.service';
 
-export interface DadosFormularioFlebite {
-    idadeMomentoValor: number;
-    idadeMomentoUnidade: string;
+export interface DadosPacienteFlebite {
+    idPaciente: number;
+    nome: string;
+    protuario: string;
+    leito: string;
+    sexo: string;
+    peso: number;
+    dataNascimento: string;
+    horaNascimento: string;
     dataAdmissao: string;
-    diagnostico: string;
-    grauFlebite: string;
-    localPuncao: string;
-    numeroPuncoes: number;
-    tipoCateter: string;
-    calibreCateter: string;
-    materialCateter: string;
-    numeroCateteresLumen: number;
-    tempoPermanencia: string;
-    dataRetirada: string;
-    usoMedicamentosVesicantes: string;
-    medicamentosAdministrados_medicamento: string;
-    medicamentosAdministrados_diluente: string;
-    medicamentosAdministrados_modoInfusao: string;
-    monitoramentoCateter_data: string;
-    monitoramentoCateter_registroAcesso: string;
 }
 
-export interface MedicamentoFlebite extends DadosMedicamento {
+export interface DadosNotificadorFlebite {
+    idNotificador: number;
+    nome: string;
+    email: string;
+    telefone: string;
+    setor: number;
+    categoria: string;
+    funcionarioGerenciaRisco: boolean;
+}
+
+export interface MedicamentoFlebite {
+    idMedicamento: number;
+    nomeGenerico: string;
+    fabricante?: string;
+    lote?: string;
+    validade?: string;
     diluente?: string;
     modoInfusao?: string;
 }
 
+export interface DadosFormularioFlebite {
+    idPaciente?: number;
+    idSetor: number;
+    idTipoIncidente: number;
+    idNotificador?: number;
+    dataInicio: string;
+    dataFim: string;
+    descricao: string;
+    dataNotificacao: string;
+    classificacaoIncidente: string;
+    classificacaoDano: string;
+    idFlebite?: number;
+    diagnostico: string;
+    grauFlebite: string;
+    localPuncao: string;
+    qtdPuncoesAteIncidente: number;
+    tipoCateter: string;
+    calibreCateter: string;
+    numCateteresInseridos: number;
+    tempoPermanenciaAcesso: number;
+    qtdMedVesicanteIrritante: number;
+    medicamentos: MedicamentoFlebite[];
+}
+
 export interface PayloadNotificacaoFlebite {
-    dadosPaciente: DadosPaciente;
-    dadosNotificador: DadosNotificador;
+    dadosPaciente: DadosPacienteFlebite;
     dadosFlebite: DadosFormularioFlebite;
+    dadosNotificador: DadosNotificadorFlebite;
     medicamentos?: MedicamentoFlebite[];
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://187.110.234.72:5505';
 
 export const criarNotificacaoFlebite = async (
     dados: PayloadNotificacaoFlebite
@@ -44,11 +73,16 @@ export const criarNotificacaoFlebite = async (
     try {
         const payload = {
             ...dados,
+            dadosFlebite: {
+                ...dados.dadosFlebite,
+                medicamentos: dados.dadosFlebite.medicamentos || []
+            },
+            medicamentos: dados.medicamentos ?? dados.dadosFlebite.medicamentos,
             dataNotificacao: new Date().toISOString(),
         };
 
         const response = await axios.post(
-            `${API_BASE_URL}/notificacoes/flebite`,
+            `${API_BASE_URL}/api/Flebite`,
             payload,
             {
                 headers: {
@@ -60,7 +94,7 @@ export const criarNotificacaoFlebite = async (
         );
 
         console.log('Resposta da API:', response.data);
-        
+
         return {
             success: true,
             data: response.data,
@@ -69,7 +103,7 @@ export const criarNotificacaoFlebite = async (
 
     } catch (error) {
         console.error('Erro ao criar notificação de flebite:', error);
-        
+
         return {
             success: false,
             message: error instanceof Error ? error.message : 'Erro desconhecido ao criar notificação',

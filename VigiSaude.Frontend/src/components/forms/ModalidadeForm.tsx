@@ -14,7 +14,7 @@ import {
   PayloadNotificacaoLesaoPressao
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
-import { criarNotificacaoFlebite } from "./services/flebite.service";
+import { criarNotificacaoFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
 import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
 import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, Desfecho } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
@@ -459,6 +459,19 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     return match ? parseInt(match[0], 10) : 0;
   };
 
+  const parseDecimal = (valor: unknown): number => {
+    const str = String(valor ?? '').replace(',', '.');
+    const sanitized = str.replace(/[^0-9.-]/g, '');
+    const parsed = Number.parseFloat(sanitized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const toDateOnly = (valor: unknown): string | null => {
+    const str = String(valor ?? '').trim();
+    if (!str) return null;
+    return str;
+  };
+
 
   // Mapear IDs dos campos para nomes legíveis
   const getFieldDisplayName = (fieldId: string): string => {
@@ -735,31 +748,105 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         resultado = await criarNotificacaoQueda(payload);
 
       } else if (modalidade === "flebite") {
-        const payload = {
-          dadosFlebite: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            dataAdmissao: String(form.dataAdmissao || ''),
-            diagnostico: String(form.diagnostico || ''),
-            grauFlebite: String(form.grauFlebite || ''),
-            localPuncao: String(form.localPuncao || ''),
-            numeroPuncoes: Number(form.numeroPuncoes) || 0,
-            tipoCateter: String(form.tipoCateter || ''),
-            calibreCateter: String(form.calibreCateter || ''),
-            materialCateter: String(form.materialCateter || ''),
-            numeroCateteresLumen: Number(form.numeroCateteresLumen) || 0,
-            tempoPermanencia: String(form.tempoPermanencia || ''),
-            dataRetirada: String(form.dataRetirada || ''),
-            usoMedicamentosVesicantes: String(form.usoMedicamentosVesicantes || ''),
-            medicamentosAdministrados_medicamento: String(form.medicamentosAdministrados_medicamento || ''),
-            medicamentosAdministrados_diluente: String(form.medicamentosAdministrados_diluente || ''),
-            medicamentosAdministrados_modoInfusao: String(form.medicamentosAdministrados_modoInfusao || ''),
-            monitoramentoCateter_data: String(form.monitoramentoCateter_data || ''),
-            monitoramentoCateter_registroAcesso: String(form.monitoramentoCateter_registroAcesso || '')
+        const normalizar = (texto: string) =>
+          texto
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+
+        const tipoIncidenteFlebiteId = dadosDinamicos.tiposIncidente.find((tipo) =>
+          normalizar(tipo.descricaoTipoIncidente || "").includes("fleb")
+        )?.idTipoIncidente ?? 0;
+
+        if (tipoIncidenteFlebiteId === 0 && dadosDinamicos.tiposIncidente.length > 0) {
+          console.warn("Tipo de incidente para flebite não encontrado. Usando 0.");
+        }
+
+        const setorPacienteId = Number(pacienteSetor) || 0;
+        const setorNotificadorId = Number(notificadorSetor) || setorPacienteId;
+        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+
+  const tempoPermanenciaTexto = String(form.tempoPermanencia || "");
+        const descricaoPartes: string[] = [];
+
+        const registroAcesso = String(form.monitoramentoCateter_registroAcesso || "").trim();
+        if (registroAcesso) descricaoPartes.push(`Registro do acesso: ${registroAcesso}`);
+
+        const dataMonitoramento = String(form.monitoramentoCateter_data || "").trim();
+        if (dataMonitoramento) descricaoPartes.push(`Monitoramento em: ${dataMonitoramento}`);
+
+        if (tempoPermanenciaTexto.trim()) {
+          descricaoPartes.push(`Tempo de permanência informado: ${tempoPermanenciaTexto.trim()}`);
+        }
+
+        const dataAdmissaoFlebite = toDateOnly(form.dataAdmissao) ?? new Date().toISOString().split('T')[0];
+        const dataRetirada = toDateOnly(form.dataRetirada);
+        const dataNotificacao = new Date().toISOString().split('T')[0];
+
+        const medicamentos: MedicamentoFlebite[] = [];
+        const nomeMedicamento = String(form.medicamentosAdministrados_medicamento || "").trim();
+        if (nomeMedicamento) {
+          const medicamento: MedicamentoFlebite = {
+            idMedicamento: 0,
+            nomeGenerico: nomeMedicamento,
+          };
+
+          const diluente = String(form.medicamentosAdministrados_diluente || "").trim();
+          if (diluente) medicamento.diluente = diluente;
+
+          const modoInfusao = String(form.medicamentosAdministrados_modoInfusao || "").trim();
+          if (modoInfusao) medicamento.modoInfusao = modoInfusao;
+
+          medicamentos.push(medicamento);
+        }
+
+        const payload: PayloadNotificacaoFlebite = {
+          dadosPaciente: {
+            idPaciente: 0,
+            nome: pacienteNome,
+            protuario: pacienteProntuario,
+            leito: pacienteLeito,
+            sexo: pacienteSexo,
+            peso: parseDecimal(pacientePeso),
+            dataNascimento: pacienteDataNascimento,
+            horaNascimento: "00:00:00",
+            dataAdmissao: dataAdmissaoFlebite,
           },
-          dadosPaciente,
-          dadosNotificador
+          dadosFlebite: {
+            idPaciente: 0,
+            idSetor: setorPacienteId,
+            idTipoIncidente: tipoIncidenteFlebiteId,
+            idNotificador: 0,
+            dataInicio: dataAdmissaoFlebite,
+            dataFim: dataRetirada ?? dataAdmissaoFlebite,
+            descricao: descricaoPartes.join(" | ") || String(form.diagnostico || ""),
+            dataNotificacao,
+            classificacaoIncidente: "",
+            classificacaoDano: "",
+            idFlebite: 0,
+            diagnostico: String(form.diagnostico || ""),
+            grauFlebite: String(form.grauFlebite || ""),
+            localPuncao: String(form.localPuncao || ""),
+            qtdPuncoesAteIncidente: Number(form.numeroPuncoes) || 0,
+            tipoCateter: String(form.tipoCateter || ""),
+            calibreCateter: String(form.calibreCateter || ""),
+            numCateteresInseridos: Number(form.numeroCateteresLumen) || 0,
+            tempoPermanenciaAcesso: extrairNumero(tempoPermanenciaTexto),
+            qtdMedVesicanteIrritante: simNaoParaBoolean(form.usoMedicamentosVesicantes) ? Math.max(medicamentos.length, 1) : 0,
+            medicamentos,
+          },
+          dadosNotificador: {
+            idNotificador: 0,
+            nome: notificadorNome,
+            email: notificadorEmail,
+            telefone: notificadorTelefone,
+            setor: setorNotificadorId,
+            categoria: notificadorCategoria,
+            funcionarioGerenciaRisco,
+          },
+          medicamentos,
         };
+
         resultado = await criarNotificacaoFlebite(payload);
 
       } else if (modalidade === "reacao-adversa") {
