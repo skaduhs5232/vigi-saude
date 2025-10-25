@@ -1,7 +1,10 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { HealthWatchSidebar } from "@/components/HealthWatchSidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { 
   BarChart, 
   Bar, 
@@ -29,7 +32,8 @@ import {
   Clock,
   Users,
   FileText,
-  Activity
+  Activity,
+  LogOut
 } from "lucide-react";
 
 // Dados mockados para os gráficos
@@ -84,9 +88,17 @@ const statusResolucao = [
 ];
 
 export default function AdminDashboard() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
   const totalIncidentes = distribuicaoTipos.reduce((sum, item) => sum + item.value, 0);
   const incidentesResolvidos = statusResolucao.find(s => s.status === "Resolvido")?.quantidade || 0;
   const taxaResolucao = Math.round((incidentesResolvidos / totalIncidentes) * 100);
+
+  const handleChangeProfile = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen w-full flex bg-background">
@@ -97,6 +109,12 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold">Dashboard Administrativo</h1>
             <span className="text-sm text-muted-foreground">- Visão geral dos indicadores</span>
+          </div>
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" onClick={handleChangeProfile}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Trocar Perfil
+            </Button>
           </div>
         </header>
 

@@ -8,167 +8,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
+import {
+  categoriaProfOptions,
+  sexoOptions,
+  schemas,
+  ModalidadeSchema,
+  Field,
+  NumberField,
+  MultiselectField,
+  SelectField,
+  RadioField,
+  DesfechoOption,
+  EditModePayload,
+} from "./schemas/modalidade-schemas";
+import {
+  DadosPacienteSection,
+  DadosNotificadorSection,
+  PacienteValues,
+  NotificadorValues,
+} from "./sections/form-sections";
+import {
   criarNotificacaoLesaoPressao,
   putLesaoPressao,
-  PayloadNotificacaoLesaoPressao
+  PayloadNotificacaoLesaoPressao,
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
 import { criarNotificacaoFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
 import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
-import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, Desfecho } from "./services/erro-medicacao.service";
+import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
 import { useDadosDinamicos } from "./hooks/useDadosDinamicos";
-
-type FieldBase = { id: string; label: string; required?: boolean };
-type TextField = FieldBase & { type: "text" };
-type NumberField = FieldBase & { type: "number"; min?: number; max?: number };
-type DateField = FieldBase & { type: "date" };
-type TimeField = FieldBase & { type: "time" };
-type TextareaField = FieldBase & { type: "textarea" };
-type RadioField = FieldBase & { type: "radio"; options: string[] };
-type SelectField = FieldBase & { type: "select"; options: string[] };
-type MultiselectChild = { whenIncludes: string; fields: Field[] };
-type MultiselectField = FieldBase & { type: "multiselect"; options: string[]; children?: MultiselectChild[] };
-type Field = TextField | NumberField | DateField | TimeField | TextareaField | RadioField | SelectField | MultiselectField;
-
-export type ModalidadeSchema = { title: string; fields: Field[] };
-
-const setoresOptions = ["Emergência Unidade 24h", "Emergência unidade de retaguarda", "Emergência obstétrica", "UTI", "Clínica cirúrgica", "Clínica médica", "Clínica pediátrica", "Clínica gineco-obstetrica", "CPN", "Centro cirúrgico", "Neonatologia", "Canguru", "Centro de imagem", "Laboratório", "Farmácia", "Transporte"];
-const categoriaProfOptions = ["Médico", "Enfermeiro", "Farmacêutico", "Dentista", "Outros"];
-const sexoOptions = ["M", "F", "Desconhecido"];
-const viaAdministracaoOpcoes = ["Oral", "Intramuscular", "Endovenosa", "Dérmica", "Inalatória", "Subcutânea", "Nasal", "Ocular", "Retal", "Vaginal", "Outra", "Desconhecida"];
-
-const schemas: Record<string, ModalidadeSchema> = {
-  queda: {
-    title: "Queda",
-    fields: [
-      { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
-      { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
-      { id: "dataAdmissao", type: "date", label: "Data de admissão", required: true },
-      { id: "diagnostico", type: "textarea", label: "Diagnóstico", required: true },
-      { id: "avaliacaoRiscoAdmissao", type: "radio", label: "Avaliação de risco na admissão", required: true, options: ["Sim", "Não"] },
-      { id: "registroOrientacao", type: "radio", label: "Registro de orientação", required: true, options: ["Sim", "Não"] },
-      { id: "riscoQuedaIdentificado", type: "radio", label: "Risco de queda identificado", required: true, options: ["Sim", "Não"] },
-      { id: "fatoresPredisponentes", type: "multiselect", label: "Fatores predisponentes", required: true, options: ["Alteração do estado mental confuso", "Distúrbio neurológico", "Prejuízo do equilíbrio da marcha", "Déficit sensitivo", "Queda anterior", "Idade > 60 anos ou criança", "Urgência urinária/intestinal", "Medicamentos que alteram SNC"] },
-      { id: "usoMedicamentosSNC", type: "radio", label: "Uso de medicamentos SNC", required: true, options: ["Sim", "Não"] },
-      { id: "medicamentosSNC", type: "multiselect", label: "Medicamentos SNC", options: ["Antiarritmicos", "Antipsicóticos", "Antidepressivos", "Anticonvulsivantes", "Anti-hipertensivos", "Anestésico geral", "Antidiabéticos", "Benzodiazepínicos", "Diuréticos", "Opioides", "Relaxantes musculares", "Tricíclicos", "Polifarmácia"] },
-      { id: "quantidadeMedicamentosBaixoRisco", type: "number", label: "Qtd. med. baixo risco", required: true, min: 0 },
-      { id: "quantidadeMedicamentosMedioRisco", type: "number", label: "Qtd. med. médio risco", required: true, min: 0 },
-      { id: "quantidadeMedicamentosAltoRisco", type: "number", label: "Qtd. med. alto risco", required: true, min: 0 },
-      { id: "acompanhante", type: "radio", label: "Acompanhante", required: true, options: ["Sim", "Não"] },
-      { id: "tipoQueda", type: "select", label: "Tipo de queda", required: true, options: ["Tropeçar", "Perda de equilíbrio", "Escorregar", "Da própria altura", "Desmaio"] },
-      { id: "localQueda", type: "select", label: "Local da queda", required: true, options: ["Berço", "Maca", "Escadas", "Cama", "Banheiro", "Equipamento diagnóstico/terapêutico", "Cadeira", "Quarto", "Transporte"] },
-      { id: "horarioQueda", type: "time", label: "Horário da queda", required: true },
-      { id: "turno", type: "select", label: "Turno", required: true, options: ["Manhã", "Tarde", "Noite"] },
-      { id: "consequencias", type: "textarea", label: "Consequências", required: true },
-    ],
-  },
-  "lesao-pressao": {
-    title: "Lesão por pressão",
-    fields: [
-      { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
-      { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
-      { id: "dataAdmissao", type: "date", label: "Data de admissão", required: true },
-      { id: "dataPrimeiraAvaliacao", type: "date", label: "Data 1ª avaliação", required: true },
-      { id: "classificacaoIncidente", type: "select", label: "Classificação do Incidente", required: true, options: ["Incidente sem dano", "Incidente com dano", "Evento adverso", "Quase erro"] },
-      { id: "classificacaoDano", type: "select", label: "Classificação do Dano", required: true, options: ["Nenhum", "Leve", "Moderado", "Grave", "Óbito"] },
-      { id: "descricaoIncidente", type: "textarea", label: "Descrição do Incidente", required: true },
-      { id: "classificacaoRiscoBraden", type: "select", label: "Classificação risco (Braden)", required: true, options: ["Sem risco", "Leve", "Moderado", "Elevado", "Muito elevado", "Sem registro"] },
-      { id: "totalEscores", type: "number", label: "Total escores", required: true, min: 0 },
-      { id: "reavaliacao48h", type: "radio", label: "Reavaliação 48h", required: true, options: ["Sim", "Não", "Sem registro"] },
-      { id: "mobilidadePrejudicada", type: "radio", label: "Mobilidade prejudicada", required: true, options: ["Sim", "Não", "Sem registro"] },
-      { id: "avaliacaoPor", type: "select", label: "Avaliação por", required: true, options: ["Enfermeiro", "Estomoterapia", "Sem registro"] },
-      { id: "registroBradenSAE", type: "radio", label: "Registro Braden SAE", required: true, options: ["Sim", "Não"] },
-      { id: "registroMobilidadeSAE", type: "radio", label: "Registro mobilidade SAE", required: true, options: ["Sim", "Não", "Sem registro"] },
-      { id: "mudancaDecubito", type: "radio", label: "Mudança de decúbito", required: true, options: ["Sim", "Não"] },
-      { id: "intervaloMudanca", type: "select", label: "Intervalo mudança", required: true, options: ["2h", "3h", "Outro"] },
-      { id: "tempoInternacaoLesao", type: "select", label: "Tempo internação até lesão", required: true, options: ["0-14 dias", "15-30 dias", "31-45 dias", "Acima de 45 dias"] },
-      { id: "localLesao", type: "multiselect", label: "Local da lesão", required: true, options: ["Sacral", "Calcâneo", "Trocânter", "Coluna vertebral", "Occipital", "Panturrilha", "Joelho", "Pavilhão auricular", "Outro"] },
-      { id: "estagioLesao", type: "select", label: "Estágio", required: true, options: ["I", "II", "III", "IV", "Indeterminado"] },
-      { id: "usoColchaoDinamico", type: "radio", label: "Uso colchão dinâmico", required: true, options: ["Sim", "Não"] },
-      { id: "avaliacaoNutricionista", type: "radio", label: "Avaliação nutricionista", required: true, options: ["Sim", "Não"] },
-      { id: "registroAvaliacaoNutricional", type: "radio", label: "Registro avaliação nutricional", required: true, options: ["Sim", "Não"] },
-      { id: "registroAvaliacaoFisioterapia", type: "radio", label: "Registro avaliação fisioterapia", required: true, options: ["Sim", "Não"] },
-      { id: "registroIncidenteEnfermagem", type: "radio", label: "Registro incidente enfermagem", required: true, options: ["Sim", "Não"] },
-      { id: "usoCoberturaAdequada", type: "radio", label: "Uso cobertura adequada", required: true, options: ["Sim", "Não", "Sem registro"] },
-    ],
-  },
-  flebite: {
-    title: "Flebite",
-    fields: [
-      { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
-      { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
-      { id: "dataAdmissao", type: "date", label: "Data de admissão", required: true },
-      { id: "diagnostico", type: "textarea", label: "Diagnóstico", required: true },
-      { id: "grauFlebite", type: "select", label: "Grau flebite", required: true, options: ["I (dor + eritema/edema sem endurecimento)", "II (dor + eritema/edema com endurecimento)", "III (dor + eritema/edema com endurecimento + cordão fibroso palpável)"] },
-      { id: "localPuncao", type: "text", label: "Local punção", required: true },
-      { id: "numeroPuncoes", type: "number", label: "Número punções", required: true, min: 0 },
-      { id: "tipoCateter", type: "text", label: "Tipo cateter", required: true },
-      { id: "calibreCateter", type: "text", label: "Calibre cateter", required: true },
-      { id: "materialCateter", type: "text", label: "Material cateter", required: true },
-      { id: "numeroCateteresLumen", type: "number", label: "Nº lúmens", required: true, min: 0 },
-      { id: "tempoPermanencia", type: "text", label: "Tempo permanência", required: true },
-      { id: "dataRetirada", type: "date", label: "Data retirada", required: true },
-      { id: "usoMedicamentosVesicantes", type: "radio", label: "Uso medicamentos vesicantes", required: true, options: ["Sim", "Não"] },
-      { id: "medicamentosAdministrados_medicamento", type: "text", label: "Medicamento administrado", required: true },
-      { id: "medicamentosAdministrados_diluente", type: "text", label: "Diluente", required: true },
-      { id: "medicamentosAdministrados_modoInfusao", type: "text", label: "Modo infusão", required: true },
-      { id: "monitoramentoCateter_data", type: "date", label: "Data monitoramento", required: true },
-      { id: "monitoramentoCateter_registroAcesso", type: "text", label: "Registro acesso", required: true },
-    ],
-  },
-  "reacao-adversa": {
-    title: "Reação adversa a medicamento",
-    fields: [
-      { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
-      { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
-      { id: "descricaoIncidente", type: "textarea", label: "Descrição do incidente", required: true },
-      { id: "descricaoReacao", type: "textarea", label: "Descrição da reação", required: true },
-      { id: "reacao_dataInicio", type: "date", label: "Início reação", required: true },
-      { id: "reacao_dataFim", type: "date", label: "Fim reação", required: true },
-      { id: "reacao_duracao", type: "text", label: "Duração reação", required: true },
-      { id: "reacao_desfecho", type: "select", label: "Desfecho", required: true, options: [] },
-      { id: "med_nomeGenerico", type: "text", label: "Medicamento (genérico)", required: true },
-      { id: "med_provavelCausador", type: "radio", label: "Provável causador", required: true, options: ["Sim", "Não"] },
-      { id: "med_fabricante", type: "text", label: "Fabricante" },
-      { id: "med_lote", type: "text", label: "Lote" },
-      { id: "med_posologia", type: "text", label: "Posologia" },
-      { id: "med_viaAdministracao", type: "select", label: "Via administração", required: true, options: viaAdministracaoOpcoes },
-      { id: "med_dataInicio", type: "date", label: "Início uso" },
-      { id: "med_dataFim", type: "date", label: "Fim uso" },
-      { id: "med_duracao", type: "text", label: "Duração uso" },
-      { id: "med_indicacao", type: "text", label: "Indicação" },
-      { id: "med_acaoAdotada", type: "select", label: "Ação adotada", required: true, options: ["Parou", "Dose reduzida", "Dose aumentada", "Dose inalterada", "Desconhecido", "Não aplicável"] },
-    ],
-  },
-  "erro-medicacao": {
-    title: "Erro de medicação",
-    fields: [
-      { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
-      { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
-      { id: "descricaoIncidente", type: "textarea", label: "Descrição do incidente", required: true },
-      { id: "erro_dataInicio", type: "date", label: "Início", required: true },
-      { id: "erro_dataFim", type: "date", label: "Fim", required: true },
-      { id: "ocorrencia", type: "select", label: "Ocorrência", required: true, options: ["Erro de prescrição", "Erro de aprazamento", "Erro de solicitação", "Erro de dispensação", "Erro de administração", "Outro"] },
-      { id: "descricaoErro", type: "textarea", label: "Descrição do erro", required: true },
-      { id: "efeitoNocivo", type: "select", label: "Efeito nocivo", required: true, options: ["Sim", "Não", "Desconhecido"] },
-      { id: "descricaoEfeitos", type: "textarea", label: "Descrição dos efeitos" },
-      { id: "desfecho", type: "select", label: "Desfecho", required: true, options: [] },
-      { id: "causasErro", type: "multiselect", label: "Causas do erro", required: true, options: ["Abreviação", "Nomes similares", "Distração", "Cálculo/preparação", "Rotina de administração", "Prescrição", "Equipamentos", "Outro"] },
-      { id: "localErro", type: "select", label: "Local do erro", required: true, options: setoresOptions },
-      { id: "med_nomeGenerico", type: "text", label: "Medicamento (genérico)", required: true },
-      { id: "med_posologia", type: "text", label: "Posologia", required: true },
-      { id: "med_viaAdministracao", type: "select", label: "Via administração", required: true, options: viaAdministracaoOpcoes },
-      { id: "med_dataInicio", type: "date", label: "Início uso" },
-      { id: "med_dataFim", type: "date", label: "Fim uso" },
-      { id: "med_indicacao", type: "text", label: "Indicação" },
-      { id: "med_lote", type: "text", label: "Lote" },
-      { id: "med_validade", type: "date", label: "Validade" },
-    ],
-  },
-  padrao: { title: "Formulário padrão", fields: [] },
-};
 
 export type ModalidadeFormProps = {
   modalidade: string;
@@ -207,10 +76,97 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [pacientePeso, setPacientePeso] = useState("");
   const [pacienteDataNascimento, setPacienteDataNascimento] = useState("");
   
-  const [desfechos, setDesfechos] = useState<Desfecho[]>([]);
+  const [desfechos, setDesfechos] = useState<DesfechoOption[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editNotificationId, setEditNotificationId] = useState<number | null>(null);
   const [originalLesaoPayload, setOriginalLesaoPayload] = useState<PayloadNotificacaoLesaoPressao | null>(null);
+
+  const pacienteValues = useMemo<PacienteValues>(() => ({
+    nome: pacienteNome,
+    prontuario: pacienteProntuario,
+    setor: pacienteSetor,
+    leito: pacienteLeito,
+    sexo: pacienteSexo,
+    peso: pacientePeso,
+    dataNascimento: pacienteDataNascimento,
+  }), [
+    pacienteNome,
+    pacienteProntuario,
+    pacienteSetor,
+    pacienteLeito,
+    pacienteSexo,
+    pacientePeso,
+    pacienteDataNascimento,
+  ]);
+
+  const notificadorValues = useMemo<NotificadorValues>(() => ({
+    nome: notificadorNome,
+    email: notificadorEmail,
+    telefone: notificadorTelefone,
+    tipo: notificadorTipo,
+    setor: notificadorSetor,
+    categoria: notificadorCategoria,
+  }), [
+    notificadorNome,
+    notificadorEmail,
+    notificadorTelefone,
+    notificadorTipo,
+    notificadorSetor,
+    notificadorCategoria,
+  ]);
+
+  const handlePacienteChange = (field: keyof PacienteValues, value: string) => {
+    switch (field) {
+      case "nome":
+        setPacienteNome(value);
+        break;
+      case "prontuario":
+        setPacienteProntuario(value);
+        break;
+      case "setor":
+        setPacienteSetor(value);
+        break;
+      case "leito":
+        setPacienteLeito(value);
+        break;
+      case "sexo":
+        setPacienteSexo(value);
+        break;
+      case "peso":
+        setPacientePeso(value);
+        break;
+      case "dataNascimento":
+        setPacienteDataNascimento(value);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleNotificadorChange = (field: keyof NotificadorValues, value: string) => {
+    switch (field) {
+      case "nome":
+        setNotificadorNome(value);
+        break;
+      case "email":
+        setNotificadorEmail(value);
+        break;
+      case "telefone":
+        setNotificadorTelefone(value);
+        break;
+      case "tipo":
+        setNotificadorTipo(value);
+        break;
+      case "setor":
+        setNotificadorSetor(value);
+        break;
+      case "categoria":
+        setNotificadorCategoria(value);
+        break;
+      default:
+        break;
+    }
+  };
 
   const precisaDesfechos = useMemo(() => {
     return schema.fields.some(field => 
@@ -242,20 +198,13 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   }, [precisaDesfechos, modalidade]);
 
   useEffect(() => {
-    const notificadorData = {
-      nome: notificadorNome,
-      email: notificadorEmail,
-      telefone: notificadorTelefone,
-      tipo: notificadorTipo,
-      setor: notificadorSetor,
-      categoria: notificadorCategoria,
-    };
-    
-    const hasData = Object.values(notificadorData).some(value => value.trim() !== "");
+    const notificadorData = { ...notificadorValues };
+
+    const hasData = Object.values(notificadorData).some((value) => value.trim() !== "");
     if (hasData) {
       localStorage.setItem("lastNotificadorData", JSON.stringify(notificadorData));
     }
-  }, [notificadorNome, notificadorEmail, notificadorTelefone, notificadorTipo, notificadorSetor, notificadorCategoria]);
+  }, [notificadorValues]);
 
   useEffect(() => {
     try {
@@ -366,7 +315,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         return;
       }
 
-      const parsed = JSON.parse(raw);
+  const parsed = JSON.parse(raw) as EditModePayload | null;
       if (!parsed || !parsed.isEdit) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
@@ -402,21 +351,21 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         }
 
         const dadosPaciente = parsed.dadosPaciente || {};
-        if (dadosPaciente.nome !== undefined) setPacienteNome(dadosPaciente.nome || "");
-        if (dadosPaciente.prontuario !== undefined) setPacienteProntuario(dadosPaciente.prontuario || "");
-        if (dadosPaciente.setor !== undefined) setPacienteSetor(String(dadosPaciente.setor || ""));
-        if (dadosPaciente.leito !== undefined) setPacienteLeito(dadosPaciente.leito || "");
-        if (dadosPaciente.sexo !== undefined) setPacienteSexo(dadosPaciente.sexo || "");
-        if (dadosPaciente.peso !== undefined) setPacientePeso(String(dadosPaciente.peso || ""));
-        if (dadosPaciente.dataNascimento !== undefined) setPacienteDataNascimento(dadosPaciente.dataNascimento || "");
+  if (dadosPaciente.nome !== undefined) setPacienteNome(String(dadosPaciente.nome || ""));
+  if (dadosPaciente.prontuario !== undefined) setPacienteProntuario(String(dadosPaciente.prontuario || ""));
+  if (dadosPaciente.setor !== undefined) setPacienteSetor(String(dadosPaciente.setor || ""));
+  if (dadosPaciente.leito !== undefined) setPacienteLeito(String(dadosPaciente.leito || ""));
+  if (dadosPaciente.sexo !== undefined) setPacienteSexo(String(dadosPaciente.sexo || ""));
+  if (dadosPaciente.peso !== undefined) setPacientePeso(String(dadosPaciente.peso || ""));
+  if (dadosPaciente.dataNascimento !== undefined) setPacienteDataNascimento(String(dadosPaciente.dataNascimento || ""));
 
         const dadosNotificador = parsed.dadosNotificador || {};
-        if (dadosNotificador.nome !== undefined) setNotificadorNome(dadosNotificador.nome || "");
-        if (dadosNotificador.email !== undefined) setNotificadorEmail(dadosNotificador.email || "");
-        if (dadosNotificador.telefone !== undefined) setNotificadorTelefone(dadosNotificador.telefone || "");
-        if (dadosNotificador.tipo !== undefined) setNotificadorTipo(dadosNotificador.tipo || "");
-        if (dadosNotificador.setor !== undefined) setNotificadorSetor(String(dadosNotificador.setor || ""));
-        if (dadosNotificador.categoria !== undefined) setNotificadorCategoria(dadosNotificador.categoria || "");
+  if (dadosNotificador.nome !== undefined) setNotificadorNome(String(dadosNotificador.nome || ""));
+  if (dadosNotificador.email !== undefined) setNotificadorEmail(String(dadosNotificador.email || ""));
+  if (dadosNotificador.telefone !== undefined) setNotificadorTelefone(String(dadosNotificador.telefone || ""));
+  if (dadosNotificador.tipo !== undefined) setNotificadorTipo(String(dadosNotificador.tipo || ""));
+  if (dadosNotificador.setor !== undefined) setNotificadorSetor(String(dadosNotificador.setor || ""));
+  if (dadosNotificador.categoria !== undefined) setNotificadorCategoria(String(dadosNotificador.categoria || ""));
       }
     } catch (error) {
       console.error("Erro ao preparar dados para edição:", error);
@@ -600,22 +549,22 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     if (!validate()) return;
     
     const dadosPaciente: DadosPaciente = {
-      nome: pacienteNome,
-      prontuario: pacienteProntuario,
-      setor: pacienteSetor,
-      leito: pacienteLeito,
-      sexo: pacienteSexo,
-      peso: pacientePeso,
-      dataNascimento: pacienteDataNascimento,
+      nome: pacienteValues.nome,
+      prontuario: pacienteValues.prontuario,
+      setor: pacienteValues.setor,
+      leito: pacienteValues.leito,
+      sexo: pacienteValues.sexo,
+      peso: pacienteValues.peso,
+      dataNascimento: pacienteValues.dataNascimento,
     };
 
     const dadosNotificador: DadosNotificador = {
-      nome: notificadorNome,
-      email: notificadorEmail,
-      telefone: notificadorTelefone,
-      tipo: notificadorTipo,
-      setor: notificadorSetor,
-      categoria: notificadorCategoria,
+      nome: notificadorValues.nome,
+      email: notificadorValues.email,
+      telefone: notificadorValues.telefone,
+      tipo: notificadorValues.tipo,
+      setor: notificadorValues.setor,
+      categoria: notificadorValues.categoria,
     };
 
     toast.info(isEditMode ? "Atualizando notificação..." : "Criando notificação...", {
@@ -1235,77 +1184,14 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           <form onSubmit={onSubmit}>
             <CardContent className="grid gap-8">
               {/* Seção: Dados do Paciente */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2 pt-5">
-                  <h3 className="text-lg font-semibold">Dados do paciente</h3>
-                  <p className="text-sm text-muted-foreground">Informações cadastrais do paciente</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Nome <span className="text-destructive">*</span>
-                  </Label>
-                  <Input value={pacienteNome} onChange={(e) => setPacienteNome(e.target.value)} />
-                  {errors.pacienteNome && <p className="text-xs text-destructive">{errors.pacienteNome}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Prontuário <span className="text-destructive">*</span>
-                  </Label>
-                  <Input value={pacienteProntuario} onChange={(e) => setPacienteProntuario(e.target.value)} />
-                  {errors.pacienteProntuario && <p className="text-xs text-destructive">{errors.pacienteProntuario}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Setor <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={pacienteSetor} onValueChange={setPacienteSetor} disabled={dadosDinamicos.carregando || dadosDinamicos.setores.length === 0}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={dadosDinamicos.carregando ? "Carregando setores..." : "Selecione"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dadosDinamicos.setores.map((s) => (
-                        <SelectItem key={s.idSetor} value={String(s.idSetor)}>
-                          {s.descricaoSetor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.pacienteSetor && <p className="text-xs text-destructive">{errors.pacienteSetor}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>Leito</Label>
-                  <Input value={pacienteLeito} onChange={(e) => setPacienteLeito(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Sexo <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={pacienteSexo} onValueChange={setPacienteSexo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sexoOptions.map((o) => (
-                        <SelectItem key={o} value={o}>
-                          {o}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.pacienteSexo && <p className="text-xs text-destructive">{errors.pacienteSexo}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>Peso (kg)</Label>
-                  <Input type="number" value={pacientePeso} onChange={(e) => setPacientePeso(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Data de nascimento <span className="text-destructive">*</span>
-                  </Label>
-                  <Input type="date" value={pacienteDataNascimento} onChange={(e) => setPacienteDataNascimento(e.target.value)} />
-                  {errors.pacienteDataNascimento && <p className="text-xs text-destructive">{errors.pacienteDataNascimento}</p>}
-                </div>
-              </div>
+              <DadosPacienteSection
+                values={pacienteValues}
+                onChange={handlePacienteChange}
+                errors={errors}
+                setores={dadosDinamicos.setores}
+                setoresCarregando={dadosDinamicos.carregando}
+                sexoOptions={sexoOptions}
+              />
 
               {/* Seção: Dados do Incidente */}
               <div className="grid gap-4 md:grid-cols-2">
@@ -1317,86 +1203,15 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
               </div>
 
               {/* Seção: Dados do Notificador */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Dados do notificador</h3>
-                    <p className="text-sm text-muted-foreground">Informe seus dados (todos opcionais, exceto o vínculo com a gerência de risco)</p>
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={carregarUltimosDados}
-                    className="shrink-0"
-                  >
-                    Últimos dados
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notificadorNome">Nome</Label>
-                  <Input id="notificadorNome" value={notificadorNome} onChange={(e) => setNotificadorNome(e.target.value)} placeholder="Ex.: Maria Silva" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notificadorEmail">E-mail</Label>
-                  <Input id="notificadorEmail" type="email" value={notificadorEmail} onChange={(e) => setNotificadorEmail(e.target.value)} placeholder="exemplo@dominio.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notificadorTelefone">Telefone</Label>
-                  <Input id="notificadorTelefone" type="tel" value={notificadorTelefone} onChange={(e) => setNotificadorTelefone(e.target.value)} placeholder="(00) 00000-0000" />
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Tipo de notificador <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={notificadorTipo} onValueChange={setNotificadorTipo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Funcionário da gerência de risco">Funcionário da gerência de risco</SelectItem>
-                      <SelectItem value="Não">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.notificadorTipo && <p className="text-xs text-destructive">{errors.notificadorTipo}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notificadorSetor">
-                    Setor <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={notificadorSetor} onValueChange={setNotificadorSetor} disabled={dadosDinamicos.carregando || dadosDinamicos.setores.length === 0}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={dadosDinamicos.carregando ? "Carregando setores..." : "Selecione"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dadosDinamicos.setores.map((s) => (
-                        <SelectItem key={s.idSetor} value={String(s.idSetor)}>
-                          {s.descricaoSetor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.notificadorSetor && <p className="text-xs text-destructive">{errors.notificadorSetor}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label>
-                    Categoria profissional <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={notificadorCategoria} onValueChange={setNotificadorCategoria}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoriaProfOptions.map((o) => (
-                        <SelectItem key={o} value={o}>
-                          {o}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.notificadorCategoria && <p className="text-xs text-destructive">{errors.notificadorCategoria}</p>}
-                </div>
-              </div>
+              <DadosNotificadorSection
+                values={notificadorValues}
+                onChange={handleNotificadorChange}
+                errors={errors}
+                setores={dadosDinamicos.setores}
+                setoresCarregando={dadosDinamicos.carregando}
+                categoriaProfOptions={categoriaProfOptions}
+                onCarregarUltimosDados={carregarUltimosDados}
+              />
             </CardContent>
             <CardFooter className="flex justify-end gap-2 sticky bottom-0 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-t py-4">
               <div className="w-full md:w-auto flex gap-2 justify-end">
