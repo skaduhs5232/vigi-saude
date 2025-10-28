@@ -15,7 +15,7 @@ export const TipoNotificacaoMes = async (): Promise<TipoNotificacaoMensal> => {
     try {
         
 
-        const response = await axios.post(
+        const response = await axios.get(
             `${API_BASE_URL}/api/tipoMensal`,
            
         );
