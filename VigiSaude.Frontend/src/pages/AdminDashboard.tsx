@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { HealthWatchSidebar } from "@/components/HealthWatchSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { TipoNotificacaoMes } from "./modules/dashServices/services";
 import { 
   BarChart, 
   Bar, 
