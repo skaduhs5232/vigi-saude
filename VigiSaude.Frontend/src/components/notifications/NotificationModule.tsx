@@ -13,6 +13,7 @@ import { CreateNotificationDialog } from "./CreateNotificationDialog";
 import { Notifier } from "@/components/notifier/NotifierForm";
 import { NotifierDialog } from "@/components/notifier/NotifierDialog";
 import { getLesaoById, PayloadNotificacaoLesaoPressao } from "@/components/forms/services/lesao-pressao.service";
+import { getFlebiteById, PayloadNotificacaoFlebite } from "@/components/forms/services/flebite.service";
 
 export type NotificationRecord = {
   id: string | number;
@@ -104,7 +105,7 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
       dadosFormulario: Record<string, unknown>;
       dadosPaciente: NotificationRecord["dadosPaciente"];
       dadosNotificador: NotificationRecord["dadosNotificador"];
-      payload?: PayloadNotificacaoLesaoPressao;
+      payload?: PayloadNotificacaoLesaoPressao | PayloadNotificacaoFlebite;
     };
 
     if (modalidade === "lesao-pressao") {
@@ -139,6 +140,41 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
       } catch (error) {
         toast.dismiss(loadingId);
         console.error("Erro ao carregar lesão para edição:", error);
+        toast.error("Erro inesperado ao carregar dados para edição.");
+        return;
+      }
+    } else if (modalidade === "flebite") {
+      const incidenteId = Number(notificacao.id);
+      if (Number.isNaN(incidenteId) || incidenteId <= 0) {
+        toast.error("Não foi possível identificar a notificação para edição.");
+        return;
+      }
+
+      const loadingId = toast.loading("Carregando dados da flebite...");
+      try {
+        const detalhes = await getFlebiteById(incidenteId);
+        toast.dismiss(loadingId);
+        if (!detalhes.success || !detalhes.data) {
+          toast.error(detalhes.message || "Não foi possível carregar os dados da flebite.");
+          return;
+        }
+        let payload: PayloadNotificacaoFlebite | undefined;
+        const dadosResposta = detalhes.data as PayloadNotificacaoFlebite | PayloadNotificacaoFlebite[];
+        if (Array.isArray(dadosResposta)) {
+          payload = dadosResposta[0];
+        } else {
+          payload = dadosResposta;
+        }
+
+        if (!payload) {
+          toast.error("Nenhum dado de flebite encontrado para edição.");
+          return;
+        }
+
+        dadosEdicao.payload = payload;
+      } catch (error) {
+        toast.dismiss(loadingId);
+        console.error("Erro ao carregar flebite para edição:", error);
         toast.error("Erro inesperado ao carregar dados para edição.");
         return;
       }
@@ -189,13 +225,10 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
   };
 
   const novoRegistro = () => {
-    const hasNotifier = !!getSavedNotifier();
-    if (!hasNotifier) {
-      setPendingCreate(true);
-      setOpenNotifier(true);
-      return;
-    }
-    setOpenCreate(true);
+    // Limpar dados de edição antes de navegar para novo formulário
+    localStorage.removeItem("editNotificationData");
+    const modalidade = getModalidadeFromTipo(tipoModulo);
+    navigate(`/form/${modalidade}`);
   };
 
   const handleCreateSubmit = (record: NotificationRecord) => {
@@ -297,10 +330,13 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
         onOpenChange={(v) => {
           setOpenNotifier(v);
           if (!v && pendingCreate) {
-            // Se acabou de fechar após salvar, abre criação
+            // Se acabou de fechar após salvar, navega para o formulário
             const hasNotifier = !!getSavedNotifier();
             if (hasNotifier) {
-              setOpenCreate(true);
+              // Limpar dados de edição antes de navegar para novo formulário
+              localStorage.removeItem("editNotificationData");
+              const modalidade = getModalidadeFromTipo(tipoModulo);
+              navigate(`/form/${modalidade}`);
             }
             setPendingCreate(false);
           }
@@ -308,7 +344,10 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
         onSaved={() => {
           if (pendingCreate) {
             setOpenNotifier(false);
-            setOpenCreate(true);
+            // Limpar dados de edição antes de navegar para novo formulário
+            localStorage.removeItem("editNotificationData");
+            const modalidade = getModalidadeFromTipo(tipoModulo);
+            navigate(`/form/${modalidade}`);
             setPendingCreate(false);
           }
         }}

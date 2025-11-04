@@ -1,5 +1,6 @@
 import { Desfecho } from "../services/erro-medicacao.service";
 import { PayloadNotificacaoLesaoPressao } from "../services/lesao-pressao.service";
+import { PayloadNotificacaoFlebite } from "../services/flebite.service";
 
 // Base field definitions for dynamic schemas
 export type FieldBase = { id: string; label: string; required?: boolean };
@@ -501,7 +502,7 @@ export type EditModePayload = {
   isEdit: boolean;
   modalidade: string;
   notificationId?: number;
-  payload?: PayloadNotificacaoLesaoPressao;
+  payload?: PayloadNotificacaoLesaoPressao | PayloadNotificacaoFlebite;
   dadosFormulario?: Record<string, unknown>;
   dadosPaciente?: Record<string, unknown>;
   dadosNotificador?: Record<string, unknown>;

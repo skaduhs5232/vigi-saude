@@ -112,7 +112,97 @@ export const criarNotificacaoFlebite = async (
     }
 };
 
+export const getTodasFlebites = async (): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/Flebite/GetTodasFlebites?tipoincidente=4`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoFlebite[],
+      message: 'Flebites recuperadas com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar flebites:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar flebites',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const getFlebiteById = async (codigoFlebite: number): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/Flebite/GetFlebitePorId?idIncidente=${codigoFlebite}&tipoincidente=4`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoFlebite,
+      message: 'Flebite recuperada com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar flebite:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar flebite',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const putFlebite = async (codigoFlebite: number, objFlebite: PayloadNotificacaoFlebite): Promise<ApiResponse> => {
+   try {
+    const response = await axios.put(`${API_BASE_URL}/api/Flebite/AtualizarFlebite/${codigoFlebite}`, objFlebite, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data,
+      message: 'Flebite atualizada com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao atualizar flebite:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao atualizar flebite',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
 export default {
     criarNotificacaoFlebite,
-    obterSetores
+    obterSetores,
+    getTodasFlebites,
+    getFlebiteById,
+    putFlebite
 };

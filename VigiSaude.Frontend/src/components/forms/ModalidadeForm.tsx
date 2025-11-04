@@ -24,7 +24,7 @@ import {
   PayloadNotificacaoLesaoPressao,
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
-import { criarNotificacaoFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
+import { criarNotificacaoFlebite, putFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
 import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
 import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
@@ -225,6 +225,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editNotificationId, setEditNotificationId] = useState<number | null>(null);
   const [originalLesaoPayload, setOriginalLesaoPayload] = useState<PayloadNotificacaoLesaoPressao | null>(null);
+  const [originalFlebitePayload, setOriginalFlebitePayload] = useState<PayloadNotificacaoFlebite | null>(null);
 
   const pacienteValues = useMemo<PacienteValues>(() => ({
     nome: pacienteNome,
@@ -454,12 +455,80 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     }
   }, [booleanToRadioValue, intervaloNumeroParaOpcao]);
 
+  const preencherFormularioFlebite = useCallback((payload: PayloadNotificacaoFlebite) => {
+    if (!payload) return;
+
+    const paciente = payload.dadosPaciente;
+    const flebite = payload.dadosFlebite;
+    const notificador = payload.dadosNotificador;
+
+    if (paciente) {
+      const pacienteRecord = paciente as unknown as Record<string, unknown>;
+      const prontuario = pacienteRecord.prontuario ?? pacienteRecord.protuario ?? "";
+      const setorPaciente = pacienteRecord.setor ?? null;
+      const pesoPaciente = pacienteRecord.peso ?? pacienteRecord.pesoKg ?? null;
+
+      setPacienteNome(paciente.nome || "");
+      setPacienteProntuario(String(prontuario || ""));
+      setPacienteSetor(
+        flebite?.idSetor !== undefined && flebite?.idSetor !== null
+          ? String(flebite.idSetor)
+          : setorPaciente !== null && setorPaciente !== undefined
+            ? String(setorPaciente)
+            : ""
+      );
+      setPacienteLeito(paciente.leito || "");
+      setPacienteSexo(paciente.sexo || "");
+      setPacientePeso(pesoPaciente !== null && pesoPaciente !== undefined ? String(pesoPaciente) : "");
+      setPacienteDataNascimento(paciente.dataNascimento || "");
+    }
+
+    if (notificador) {
+      setNotificadorNome(notificador.nome || "");
+      setNotificadorEmail(notificador.email || "");
+      setNotificadorTelefone(notificador.telefone || "");
+      setNotificadorTipo(notificador.funcionarioGerenciaRisco ? "Funcionário da gerência de risco" : "Não");
+      setNotificadorSetor(notificador.setor !== undefined && notificador.setor !== null ? String(notificador.setor) : "");
+      setNotificadorCategoria(notificador.categoria || "");
+    }
+
+    if (flebite) {
+      const medicamentos = flebite.medicamentos || payload.medicamentos || [];
+      const primeiroMedicamento = medicamentos.length > 0 ? medicamentos[0] : null;
+
+      const valoresFormulario: Record<string, unknown> = {
+        dataAdmissao: paciente?.dataAdmissao || flebite.dataInicio || "",
+        diagnostico: flebite.diagnostico || flebite.descricao || "",
+        grauFlebite: flebite.grauFlebite || "",
+        localPuncao: flebite.localPuncao || "",
+        numeroPuncoes: flebite.qtdPuncoesAteIncidente ?? "",
+        tipoCateter: flebite.tipoCateter || "",
+        calibreCateter: flebite.calibreCateter || "",
+        materialCateter: "", // Não está no payload, pode ser adicionado se necessário
+        numeroCateteresLumen: flebite.numCateteresInseridos ?? "",
+        tempoPermanencia: flebite.tempoPermanenciaAcesso !== undefined && flebite.tempoPermanenciaAcesso !== null 
+          ? `${flebite.tempoPermanenciaAcesso}h` 
+          : "",
+        dataRetirada: flebite.dataFim || "",
+        usoMedicamentosVesicantes: (flebite.qtdMedVesicanteIrritante && flebite.qtdMedVesicanteIrritante > 0) ? "Sim" : "Não",
+        medicamentosAdministrados_medicamento: primeiroMedicamento?.nomeGenerico || "",
+        medicamentosAdministrados_diluente: primeiroMedicamento?.diluente || "",
+        medicamentosAdministrados_modoInfusao: primeiroMedicamento?.modoInfusao || "",
+        monitoramentoCateter_data: "", // Não está no payload
+        monitoramentoCateter_registroAcesso: "", // Pode estar na descrição
+      };
+
+      setForm((prev) => ({ ...prev, ...valoresFormulario }));
+    }
+  }, []);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("editNotificationData");
       if (!raw) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
+        setOriginalFlebitePayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -468,6 +537,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       if (!parsed || !parsed.isEdit) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
+        setOriginalFlebitePayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -475,6 +545,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       if (parsed.modalidade && parsed.modalidade !== modalidade) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
+        setOriginalFlebitePayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -494,6 +565,15 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           setEditNotificationId(lesaoId);
         }
         preencherFormularioLesaoPressao(payload);
+      } else if (modalidade === "flebite" && parsed.payload) {
+        const payload = parsed.payload as PayloadNotificacaoFlebite;
+        setOriginalFlebitePayload(payload);
+        const flebiteIdRaw = payload.dadosFlebite?.idFlebite ?? parsed.notificationId;
+        const flebiteId = Number(flebiteIdRaw);
+        if (!Number.isNaN(flebiteId)) {
+          setEditNotificationId(flebiteId);
+        }
+        preencherFormularioFlebite(payload);
       } else {
         if (parsed.dadosFormulario) {
           setForm((prev) => ({ ...prev, ...parsed.dadosFormulario }));
@@ -519,7 +599,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     } catch (error) {
       console.error("Erro ao preparar dados para edição:", error);
     }
-  }, [modalidade, preencherFormularioLesaoPressao]);
+  }, [modalidade, preencherFormularioLesaoPressao, preencherFormularioFlebite]);
 
   // ==================== FUNÇÕES AUXILIARES ====================
   const carregarUltimosDados = () => {
@@ -893,6 +973,10 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   resultado = await criarNotificacaoQueda(payload);
 
       } else if (modalidade === "flebite") {
+        const flebiteOriginal = originalFlebitePayload?.dadosFlebite;
+        const pacienteOriginal = originalFlebitePayload?.dadosPaciente;
+        const notificadorOriginal = originalFlebitePayload?.dadosNotificador;
+
         const normalizar = (texto: string) =>
           texto
             .normalize("NFD")
@@ -901,17 +985,23 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
         const tipoIncidenteFlebiteId = dadosDinamicos.tiposIncidente.find((tipo) =>
           normalizar(tipo.descricaoTipoIncidente || "").includes("fleb")
-        )?.idTipoIncidente ?? 0;
+        )?.idTipoIncidente ?? (flebiteOriginal?.idTipoIncidente || 0);
 
-        if (tipoIncidenteFlebiteId === 0 && dadosDinamicos.tiposIncidente.length > 0) {
+        if (tipoIncidenteFlebiteId === 0 && dadosDinamicos.tiposIncidente.length > 0 && !isEditMode) {
           console.warn("Tipo de incidente para flebite não encontrado. Usando 0.");
         }
 
-        const setorPacienteId = Number(pacienteSetor) || 0;
-        const setorNotificadorId = Number(notificadorSetor) || setorPacienteId;
+        const pacienteId = pacienteOriginal?.idPaciente ?? 0;
+        const notificadorId = notificadorOriginal?.idNotificador ?? 0;
+        const flebiteId = isEditMode
+          ? (flebiteOriginal?.idFlebite ?? editNotificationId ?? 0)
+          : 0;
+
+        const setorPacienteId = Number(pacienteSetor) || (flebiteOriginal?.idSetor ?? 0);
+        const setorNotificadorId = Number(notificadorSetor) || (notificadorOriginal?.setor ?? setorPacienteId);
         const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
 
-  const tempoPermanenciaTexto = String(form.tempoPermanencia || "");
+        const tempoPermanenciaTexto = String(form.tempoPermanencia || "");
         const descricaoPartes: string[] = [];
 
         const registroAcesso = String(form.monitoramentoCateter_registroAcesso || "").trim();
@@ -924,9 +1014,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           descricaoPartes.push(`Tempo de permanência informado: ${tempoPermanenciaTexto.trim()}`);
         }
 
-        const dataAdmissaoFlebite = toDateOnly(form.dataAdmissao) ?? new Date().toISOString().split('T')[0];
-        const dataRetirada = toDateOnly(form.dataRetirada);
-        const dataNotificacao = new Date().toISOString().split('T')[0];
+        const dataAdmissaoFlebite = toDateOnly(form.dataAdmissao) ?? pacienteOriginal?.dataAdmissao ?? new Date().toISOString().split('T')[0];
+        const dataRetirada = toDateOnly(form.dataRetirada) ?? flebiteOriginal?.dataFim;
+        const dataNotificacao = isEditMode && flebiteOriginal?.dataNotificacao
+          ? flebiteOriginal.dataNotificacao
+          : new Date().toISOString().split('T')[0];
+        const horaNascimento = pacienteOriginal?.horaNascimento || "00:00:00";
 
         const medicamentos: MedicamentoFlebite[] = [];
         const nomeMedicamento = String(form.medicamentosAdministrados_medicamento || "").trim();
@@ -947,41 +1040,41 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
 
         const payload: PayloadNotificacaoFlebite = {
           dadosPaciente: {
-            idPaciente: 0,
+            idPaciente: pacienteId,
             nome: pacienteNome,
             protuario: pacienteProntuario,
             leito: pacienteLeito,
             sexo: pacienteSexo,
             peso: parseDecimal(pacientePeso),
             dataNascimento: pacienteDataNascimento,
-            horaNascimento: "00:00:00",
+            horaNascimento,
             dataAdmissao: dataAdmissaoFlebite,
           },
           dadosFlebite: {
-            idPaciente: 0,
+            idPaciente: pacienteId,
             idSetor: setorPacienteId,
             idTipoIncidente: tipoIncidenteFlebiteId,
-            idNotificador: 0,
+            idNotificador: notificadorId,
             dataInicio: dataAdmissaoFlebite,
             dataFim: dataRetirada ?? dataAdmissaoFlebite,
-            descricao: descricaoPartes.join(" | ") || String(form.diagnostico || ""),
+            descricao: descricaoPartes.join(" | ") || String(form.diagnostico || flebiteOriginal?.descricao || ""),
             dataNotificacao,
-            classificacaoIncidente: "",
-            classificacaoDano: "",
-            idFlebite: 0,
-            diagnostico: String(form.diagnostico || ""),
-            grauFlebite: String(form.grauFlebite || ""),
-            localPuncao: String(form.localPuncao || ""),
-            qtdPuncoesAteIncidente: Number(form.numeroPuncoes) || 0,
-            tipoCateter: String(form.tipoCateter || ""),
-            calibreCateter: String(form.calibreCateter || ""),
-            numCateteresInseridos: Number(form.numeroCateteresLumen) || 0,
-            tempoPermanenciaAcesso: extrairNumero(tempoPermanenciaTexto),
-            qtdMedVesicanteIrritante: simNaoParaBoolean(form.usoMedicamentosVesicantes) ? Math.max(medicamentos.length, 1) : 0,
+            classificacaoIncidente: flebiteOriginal?.classificacaoIncidente || "",
+            classificacaoDano: flebiteOriginal?.classificacaoDano || "",
+            idFlebite: flebiteId || undefined,
+            diagnostico: String(form.diagnostico || flebiteOriginal?.diagnostico || ""),
+            grauFlebite: String(form.grauFlebite || flebiteOriginal?.grauFlebite || ""),
+            localPuncao: String(form.localPuncao || flebiteOriginal?.localPuncao || ""),
+            qtdPuncoesAteIncidente: Number(form.numeroPuncoes) || flebiteOriginal?.qtdPuncoesAteIncidente || 0,
+            tipoCateter: String(form.tipoCateter || flebiteOriginal?.tipoCateter || ""),
+            calibreCateter: String(form.calibreCateter || flebiteOriginal?.calibreCateter || ""),
+            numCateteresInseridos: Number(form.numeroCateteresLumen) || flebiteOriginal?.numCateteresInseridos || 0,
+            tempoPermanenciaAcesso: extrairNumero(tempoPermanenciaTexto) || flebiteOriginal?.tempoPermanenciaAcesso || 0,
+            qtdMedVesicanteIrritante: simNaoParaBoolean(form.usoMedicamentosVesicantes) ? Math.max(medicamentos.length, 1) : (flebiteOriginal?.qtdMedVesicanteIrritante || 0),
             medicamentos,
           },
           dadosNotificador: {
-            idNotificador: 0,
+            idNotificador: notificadorId,
             nome: notificadorNome,
             email: notificadorEmail,
             telefone: notificadorTelefone,
@@ -992,7 +1085,11 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           medicamentos,
         };
 
-        resultado = await criarNotificacaoFlebite(payload);
+        if (isEditMode && flebiteId > 0) {
+          resultado = await putFlebite(flebiteId, payload);
+        } else {
+          resultado = await criarNotificacaoFlebite(payload);
+        }
 
       } else if (modalidade === "reacao-adversa") {
         const payload = {
