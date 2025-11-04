@@ -105,7 +105,7 @@ export const criarNotificacaoQueda = async (
 
 export const GetTodasQuedas = async (): Promise<ApiResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}//api/Queda/GetTodasQuedas?tipoincidente=5`, {
+    const response = await axios.get(`${API_BASE_URL}/api/Queda/GetTodasQuedas?tipoincidente=3`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -122,11 +122,11 @@ export const GetTodasQuedas = async (): Promise<ApiResponse> => {
     };
 
   } catch (error) {
-    console.error('Erro ao recuperar Quedas:', error);
+    console.error('Erro ao recuperar Queda:', error);
 
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar quedas.',
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar queda.',
       errors: [error instanceof Error ? error.message : 'Erro desconhecido']
     };
   }
@@ -134,7 +134,7 @@ export const GetTodasQuedas = async (): Promise<ApiResponse> => {
 
 export const GetQuedaPorId = async (codigoQueda: number): Promise<ApiResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/Queda/GetQuedaPorId?idIncidente=${codigoQueda}&tipoincidente=5`, {
+    const response = await axios.get(`${API_BASE_URL}/api/Queda/GetQuedaPorId?idIncidente=${codigoQueda}&tipoincidente=3`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -155,7 +155,7 @@ export const GetQuedaPorId = async (codigoQueda: number): Promise<ApiResponse> =
 
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar quedas.',
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar queda.',
       errors: [error instanceof Error ? error.message : 'Erro desconhecido']
     };
   }
