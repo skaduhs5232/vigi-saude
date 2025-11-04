@@ -11,26 +11,48 @@ import {
   obterCategoriasMedicamentoQueda
 } from './comum.service';
 
+
+export interface CategoriaMedicamentoQuedaDTO {
+  idCategoriaMedicamentoQueda: number;
+  descricaoCategoria: string;
+  descricaoMeds: string;
+}
+
+export interface FatorRiscoQuedaDTO {
+  idFatorRiscoQueda: number;
+  descricaoFator: string;
+}
+
 export interface DadosFormularioQueda {
-  idadeMomentoValor: number;
-  idadeMomentoUnidade: string;
+  idPaciente: number;
+  idSetor: number;
+  idTipoIncidente: number;
+  idNotificador: number;
+  idadeMomentoValor?: number;
+  idadeMomentoUnidade?: string;
   dataAdmissao: string;
+  dataInicio: string;
+  dataFim: string;
+  descricao: string;
+  dataNotificacao: string;
+  classificacaoIncidente: string;
+  classificacaoDano: string;
+  idQueda: number;
   diagnostico: string;
-  avaliacaoRiscoAdmissao: string;
-  registroOrientacao: string;
-  riscoQuedaIdentificado: string;
-  fatoresPredisponentes: string[];
-  usoMedicamentosSNC: string;
-  medicamentosSNC?: string[];
-  quantidadeMedicamentosBaixoRisco: number;
-  quantidadeMedicamentosMedioRisco: number;
-  quantidadeMedicamentosAltoRisco: number;
-  acompanhante: string;
-  tipoQueda: string;
-  localQueda: string;
-  horarioQueda: string;
+  avaliacaoRiscoAdmissao: boolean;
+  registroOrientacaoProntuario: boolean;
+  riscoIdentificadoAdmissao: boolean;
+  pacienteComAcompanhante: boolean;
+  qtdMedBaixoRisco: number;
+  qtdMedMedioRisco: number;
+  qtdMedAltoRisco: number;
+  tipoQuedaId: number;
+  localQuedaId: number;
+  horario?: string | null;
   turno: string;
-  consequencias: string;
+  desfecho: string;
+  categoriasMedicamento: CategoriaMedicamentoQuedaDTO[];
+  fatoresRisco: FatorRiscoQuedaDTO[];
 }
 
 export interface PayloadNotificacaoQueda {
@@ -51,7 +73,7 @@ export const criarNotificacaoQueda = async (
     };
 
     const response = await axios.post(
-      `${API_BASE_URL}/notificacoes/queda`,
+      `${API_BASE_URL}/api/Queda`,
       payload,
       {
         headers: {
@@ -76,6 +98,93 @@ export const criarNotificacaoQueda = async (
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Erro desconhecido ao criar notificação',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const GetTodasQuedas = async (): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}//api/Queda/GetTodasQuedas?tipoincidente=5`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoQueda[],
+      message: 'Queda recuperada com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar Quedas:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar quedas.',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const GetQuedaPorId = async (codigoQueda: number): Promise<ApiResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/Queda/GetQuedaPorId?idIncidente=${codigoQueda}&tipoincidente=5`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data as PayloadNotificacaoQueda,
+      message: 'Queda recuperada com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar queda:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar quedas.',
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+    };
+  }
+};
+
+export const PutQueda = async (codigoQueda: number, objQueda: PayloadNotificacaoQueda): Promise<ApiResponse> => {
+   try {
+    const response = await axios.put(`${API_BASE_URL}/api/Queda/AtualizarQueda/{idIncidente}/${codigoQueda}`, objQueda, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('Resposta da API:', response.data);
+
+    return {
+      success: true,
+      data: response.data,
+      message: 'Queda por pressão atualizadas com sucesso!'
+    };
+
+  } catch (error) {
+    console.error('Erro ao recuperar queda por pressão:', error);
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido ao recuperar queda',
       errors: [error instanceof Error ? error.message : 'Erro desconhecido']
     };
   }

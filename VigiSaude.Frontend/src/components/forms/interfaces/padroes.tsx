@@ -2,7 +2,7 @@
 
 export interface DadosPaciente {
   nome: string; // Nome VARCHAR(45)
-  prontuario: string; // Prontuario VARCHAR(45)
+  protuario: string; // Protuario VARCHAR(45)
   setor: string; // Setor_idSetor - será convertido para ID no backend
   leito?: string; // Leito VARCHAR(10) - opcional
   sexo: string; // Sexo VARCHAR(15)
