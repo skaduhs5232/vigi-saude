@@ -7,24 +7,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { TipoNotificacaoMes } from "./modules/dashServices/services";
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  RadialBarChart,
-  RadialBar,
-  Legend
-} from "recharts";
+  NotificationsByTypeChart, 
+  TrendsChart, 
+  SeverityAnalysisChart,
+  HeatmapChart,
+  GaugeChart,
+  TimelineChart
+} from "@/components/charts";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -147,20 +136,6 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Resolução</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{taxaResolucao}%</div>
-              <p className="text-xs text-muted-foreground">
-                <TrendingUp className="inline h-3 w-3 mr-1" />
-                +5% em relação ao mês anterior
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Incidentes Críticos</CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -186,120 +161,23 @@ export default function AdminDashboard() {
               </p>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Densidade por Leito</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">1.8</div>
+              <p className="text-xs text-muted-foreground">
+                casos por leito ocupado
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Gráficos principais */}
+        {/* Gráficos principais - Status e Distribuição */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          {/* Gráfico de barras - Incidentes por mês */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Incidentes por Mês e Tipo</CardTitle>
-              <CardDescription>
-                Distribuição dos tipos de incidentes nos últimos 6 meses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={incidentesUltimoMes}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="flebite" stackId="a" fill="#8884d8" name="Flebite" />
-                  <Bar dataKey="queda" stackId="a" fill="#82ca9d" name="Queda" />
-                  <Bar dataKey="lesaoPressao" stackId="a" fill="#ffc658" name="Lesão por pressão" />
-                  <Bar dataKey="reacaoAdversa" stackId="a" fill="#ff7c7c" name="Reação adversa" />
-                  <Bar dataKey="erroMedicacao" stackId="a" fill="#8dd1e1" name="Erro de medicação" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Gráfico de linha - Tendência */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tendência de Incidentes</CardTitle>
-              <CardDescription>
-                Total de incidentes reportados nos últimos 15 dias
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={tendenciaIncidentes}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="dia" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area 
-                    type="monotone" 
-                    dataKey="total" 
-                    stroke="#8884d8" 
-                    fill="#8884d8" 
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gráficos secundários */}
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
-          {/* Gráfico de pizza - Distribuição por tipo */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribuição por Tipo</CardTitle>
-              <CardDescription>
-                Proporção dos tipos de incidentes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={distribuicaoTipos}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {distribuicaoTipos.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Gráfico radial - Setores afetados */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Setores Afetados</CardTitle>
-              <CardDescription>
-                Incidentes por setor hospitalar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <RadialBarChart 
-                  cx="50%" 
-                  cy="50%" 
-                  innerRadius="20%" 
-                  outerRadius="80%" 
-                  data={setoresAfetados}
-                >
-                  <RadialBar dataKey="incidentes" cornerRadius={3} />
-                  <Tooltip />
-                  <Legend />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
           {/* Status de resolução */}
           <Card>
             <CardHeader>
@@ -326,6 +204,48 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de distribuição por tipo - ApexCharts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição por Tipo</CardTitle>
+              <CardDescription>
+                Proporção de notificações por modalidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NotificationsByTypeChart />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráficos de tendência e gravidade */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Gráfico de tendências - ApexCharts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendência de Notificações</CardTitle>
+              <CardDescription>
+                Volume de notificações por módulo nos últimos 12 meses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TrendsChart />
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de severidade - ApexCharts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Análise de Gravidade</CardTitle>
+              <CardDescription>
+                Distribuição de casos por nível de gravidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SeverityAnalysisChart />
             </CardContent>
           </Card>
         </div>
