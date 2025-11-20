@@ -63,6 +63,7 @@ export interface PayloadNotificacaoQueda {
 
 const API_BASE_URL = 'http://187.110.234.72:5505';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const criarNotificacaoQueda = async (
   dados: PayloadNotificacaoQueda
 ): Promise<ApiResponse> => {

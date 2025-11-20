@@ -52,9 +52,10 @@ export type NotificationModuleProps = {
   tipoModulo: string; // ex: "Farmacovigilância"
   dados: NotificationRecord[];
   onAdicionar?: () => void; // ação adicional ao criar novo
+  onView?: (id: string | number) => Promise<NotificationRecord | null>;
 };
 
-export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdicionar }: NotificationModuleProps) {
+export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdicionar, onView }: NotificationModuleProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [filtroSeveridade, setFiltroSeveridade] = useState<string>("todas");
@@ -68,6 +69,8 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
   const [openEdit, setOpenEdit] = useState(false);
   const [editSeveridade, setEditSeveridade] = useState<NotificationRecord["severidade"]>("baixa");
   const [editStatus, setEditStatus] = useState<NotificationRecord["status"]>("pendente");
+  const [viewRecord, setViewRecord] = useState<NotificationRecord | null>(null);
+  const [openView, setOpenView] = useState(false);
 
   // Mapear tipos de notificação para modalidades de formulário
   const getModalidadeFromTipo = (tipo: string): string => {
@@ -87,6 +90,29 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
   React.useEffect(() => {
     setRows(dados);
   }, [dados]);
+
+  const handleView = async (record: NotificationRecord) => {
+    if (onView) {
+      const loadingId = toast.loading("Carregando detalhes...");
+      try {
+        const details = await onView(record.id);
+        toast.dismiss(loadingId);
+        if (details) {
+          setViewRecord(details);
+          setOpenView(true);
+        } else {
+          toast.error("Não foi possível carregar os detalhes.");
+        }
+      } catch (error) {
+        toast.dismiss(loadingId);
+        console.error("Erro ao carregar detalhes:", error);
+        toast.error("Erro ao carregar detalhes.");
+      }
+    } else {
+      setViewRecord(record);
+      setOpenView(true);
+    }
+  };
 
   // Função para editar notificação - navegar para formulário
   const editarNotificacao = async (notificacao: NotificationRecord) => {
@@ -385,54 +411,9 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
                   <TableCell>{d.status}</TableCell>
                   <TableCell>{d.data}</TableCell>
                   <TableCell className="text-right">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="gap-1">
-                          <Eye className="h-4 w-4" /> Ver
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[600px]">
-                        <DialogHeader>
-                          <DialogTitle>
-                            Detalhes da Notificação #{d.id}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-2 text-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <span className="text-muted-foreground">Tipo</span>
-                              <div className="font-medium">{d.tipo}</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Severidade</span>
-                              <div className="font-medium">{d.severidade}</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Status</span>
-                              <div className="font-medium">{d.status}</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Data</span>
-                              <div className="font-medium">{d.data}</div>
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Título</span>
-                            <div className="font-semibold">{d.titulo}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Descrição</span>
-                            <p className="text-foreground whitespace-pre-wrap">{d.descricao}</p>
-                          </div>
-                          {d.descricaoAdicional && (
-                            <div>
-                              <span className="text-muted-foreground">Descrição adicional</span>
-                              <p className="text-foreground whitespace-pre-wrap">{d.descricaoAdicional}</p>
-                            </div>
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => handleView(d)}>
+                      <Eye className="h-4 w-4" /> Ver
+                    </Button>
                     <Button size="sm" variant="ghost" className="ml-2 gap-1" onClick={() => editarNotificacao(d)}>
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
@@ -521,6 +502,102 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
                 <Button type="submit">Salvar</Button>
               </div>
             </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Visualização */}
+      <Dialog open={openView} onOpenChange={setOpenView}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Notificação #{viewRecord?.id}</DialogTitle>
+          </DialogHeader>
+          {viewRecord && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/20 rounded-lg">
+                <div>
+                  <span className="text-muted-foreground block mb-1">Tipo</span>
+                  <div className="font-medium">{viewRecord.tipo}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Severidade</span>
+                  <div className={`font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                    viewRecord.severidade === "alta" ? "bg-red-100 text-red-800" : 
+                    viewRecord.severidade === "media" ? "bg-yellow-100 text-yellow-800" : 
+                    "bg-green-100 text-green-800"
+                  }`}>
+                    {viewRecord.severidade.toUpperCase()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Status</span>
+                  <div className="font-medium">{viewRecord.status}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Data</span>
+                  <div className="font-medium">{viewRecord.data}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-muted-foreground font-medium">Título</span>
+                <div className="font-semibold text-lg">{viewRecord.titulo}</div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-muted-foreground font-medium">Descrição</span>
+                <div className="p-3 bg-muted/30 rounded-md">
+                  <p className="text-foreground whitespace-pre-wrap">{viewRecord.descricao}</p>
+                </div>
+              </div>
+
+              {viewRecord.descricaoAdicional && (
+                <div className="space-y-2">
+                  <span className="text-muted-foreground font-medium">Descrição adicional</span>
+                  <div className="p-3 bg-muted/30 rounded-md">
+                    <p className="text-foreground whitespace-pre-wrap">{viewRecord.descricaoAdicional}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Exibir dados do paciente se disponíveis */}
+              {viewRecord.dadosPaciente && (
+                <div className="mt-6 pt-4 border-t">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    Dados do Paciente
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {Object.entries(viewRecord.dadosPaciente).map(([key, value]) => (
+                      value && (
+                        <div key={key}>
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <div className="font-medium">{String(value)}</div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Exibir dados do notificador se disponíveis */}
+              {viewRecord.dadosNotificador && (
+                <div className="mt-6 pt-4 border-t">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    Dados do Notificador
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {Object.entries(viewRecord.dadosNotificador).map(([key, value]) => (
+                      value && (
+                        <div key={key}>
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <div className="font-medium">{String(value)}</div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>

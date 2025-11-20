@@ -18,15 +18,11 @@ import {
   PacienteValues,
   NotificadorValues,
 } from "./sections/form-sections";
-import {
-  criarNotificacaoLesaoPressao,
-  putLesaoPressao,
-  PayloadNotificacaoLesaoPressao,
-} from "./services/lesao-pressao.service";
+import { criarNotificacaoLesaoPressao, putLesaoPressao, PayloadNotificacaoLesaoPressao } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
 import { criarNotificacaoFlebite, putFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
-import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
-import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro } from "./services/erro-medicacao.service";
+import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao, PayloadRam, putRam } from "./services/reacao-adversa.service";
+import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, PayloadErroMedicacao, putErroMedicacao } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
 import { useDadosDinamicos } from "./hooks/useDadosDinamicos";
 
@@ -54,7 +50,6 @@ const schemas: Record<string, ModalidadeSchema> = {
     title: "Queda",
     fields: [
       { id: "idSetor", type: "select", label: "Setor", required: true, options: [] }, // Opções preenchidas dinamicamente
-      { id: "idTipoIncidente", type: "number", label: "Tipo de Incidente", required: true },
       { id: "dataInicio", type: "date", label: "Data do Início", required: true },
       { id: "descricao", type: "textarea", label: "Descrição", required: true },
       { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
@@ -137,6 +132,8 @@ const schemas: Record<string, ModalidadeSchema> = {
     fields: [
       { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
       { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
+      { id: "classificacaoIncidente", type: "select", label: "Classificação do Incidente", required: true, options: ["Incidente sem dano", "Incidente com dano", "Evento adverso", "Quase erro"] },
+      { id: "classificacaoDano", type: "select", label: "Classificação do Dano", required: true, options: ["Nenhum", "Leve", "Moderado", "Grave", "Óbito"] },
       { id: "descricaoIncidente", type: "textarea", label: "Descrição do incidente", required: true },
       { id: "descricaoReacao", type: "textarea", label: "Descrição da reação", required: true },
       { id: "reacao_dataInicio", type: "date", label: "Início reação", required: true },
@@ -161,6 +158,8 @@ const schemas: Record<string, ModalidadeSchema> = {
     fields: [
       { id: "idadeMomentoValor", type: "number", label: "Idade no momento (valor)", required: true, min: 0 },
       { id: "idadeMomentoUnidade", type: "select", label: "Idade no momento (unidade)", required: true, options: ["hora", "dia", "semana", "mês", "ano"] },
+      { id: "classificacaoIncidente", type: "select", label: "Classificação do Incidente", required: true, options: ["Incidente sem dano", "Incidente com dano", "Evento adverso", "Quase erro"] },
+      { id: "classificacaoDano", type: "select", label: "Classificação do Dano", required: true, options: ["Nenhum", "Leve", "Moderado", "Grave", "Óbito"] },
       { id: "descricaoIncidente", type: "textarea", label: "Descrição do incidente", required: true },
       { id: "erro_dataInicio", type: "date", label: "Início", required: true },
       { id: "erro_dataFim", type: "date", label: "Fim", required: true },
@@ -226,6 +225,8 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
   const [editNotificationId, setEditNotificationId] = useState<number | null>(null);
   const [originalLesaoPayload, setOriginalLesaoPayload] = useState<PayloadNotificacaoLesaoPressao | null>(null);
   const [originalFlebitePayload, setOriginalFlebitePayload] = useState<PayloadNotificacaoFlebite | null>(null);
+  const [originalErroPayload, setOriginalErroPayload] = useState<PayloadErroMedicacao | null>(null);
+  const [originalRamPayload, setOriginalRamPayload] = useState<PayloadRam | null>(null);
 
   const pacienteValues = useMemo<PacienteValues>(() => ({
     nome: pacienteNome,
@@ -522,6 +523,154 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     }
   }, []);
 
+  const preencherFormularioReacaoAdversa = useCallback((payload: PayloadRam) => {
+    if (!payload) return;
+
+    const paciente = payload.dadosPaciente;
+    const ram = payload.dadosRam;
+    const notificador = payload.dadosNotificador;
+    const detalhes = payload.detalhesRam && payload.detalhesRam.length > 0 ? payload.detalhesRam[0] : null;
+
+    if (paciente) {
+      const pacienteRecord = paciente as unknown as Record<string, unknown>;
+      const prontuario = pacienteRecord.prontuario ?? pacienteRecord.protuario ?? "";
+      const setorPaciente = pacienteRecord.setor ?? null;
+      const pesoPaciente = pacienteRecord.peso ?? pacienteRecord.pesoKg ?? null;
+
+      setPacienteNome(paciente.nome || "");
+      setPacienteProntuario(String(prontuario || ""));
+      setPacienteSetor(
+        ram?.idSetor !== undefined && ram?.idSetor !== null
+          ? String(ram.idSetor)
+          : setorPaciente !== null && setorPaciente !== undefined
+            ? String(setorPaciente)
+            : ""
+      );
+      setPacienteLeito(paciente.leito || "");
+      setPacienteSexo(paciente.sexo || "");
+      setPacientePeso(pesoPaciente !== null && pesoPaciente !== undefined ? String(pesoPaciente) : "");
+      setPacienteDataNascimento(paciente.dataNascimento || "");
+    }
+
+    if (notificador) {
+      setNotificadorNome(notificador.nome || "");
+      setNotificadorEmail(notificador.email || "");
+      setNotificadorTelefone(notificador.telefone || "");
+      setNotificadorTipo(notificador.funcionarioGerenciaRisco ? "Funcionário da gerência de risco" : "Não");
+      setNotificadorSetor(notificador.setor !== undefined && notificador.setor !== null ? String(notificador.setor) : "");
+      setNotificadorCategoria(notificador.categoria || "");
+    }
+
+    if (ram) {
+      const valoresFormulario: Record<string, unknown> = {
+        descricaoIncidente: ram.descricao || "",
+        reacao_dataInicio: ram.dataInicio || "",
+        reacao_dataFim: ram.dataFim || "",
+        classificacaoIncidente: ram.classificacaoIncidente || "",
+        classificacaoDano: ram.classificacaoDano || "",
+        // Campos que não estão diretamente no payload principal mas podem estar nos detalhes ou inferidos
+        descricaoReacao: ram.descricao || "", // Usando descrição como fallback
+        reacao_duracao: "", // Não tem campo direto
+        reacao_desfecho: detalhes?.descricaoDesfecho || "",
+        med_nomeGenerico: detalhes?.nomeGenerico || "",
+        med_provavelCausador: detalhes?.medProvavelCausador ? "Sim" : "Não",
+        med_fabricante: detalhes?.fabricante || "",
+        med_lote: detalhes?.lote || "",
+        med_posologia: detalhes?.posologia || "",
+        med_viaAdministracao: detalhes?.descricaoViaAdm || "",
+        med_dataInicio: detalhes?.dataInicioMed || "",
+        med_dataFim: detalhes?.dataFimMed || "",
+        med_duracao: "", // Não tem campo direto
+        med_indicacao: detalhes?.indicacao || "",
+        med_acaoAdotada: detalhes?.acaoAdotada || "",
+      };
+
+      setForm((prev) => ({ ...prev, ...valoresFormulario }));
+    }
+  }, []);
+
+  const preencherFormularioErroMedicacao = useCallback((payload: PayloadErroMedicacao) => {
+    if (!payload) return;
+
+    const paciente = payload.dadosPaciente;
+    const erro = payload.dadosErroMedicacao;
+    const notificador = payload.dadosNotificador;
+    const detalhes = payload.detalhesErros && payload.detalhesErros.length > 0 ? payload.detalhesErros[0] : null;
+
+    if (paciente) {
+      const pacienteRecord = paciente as unknown as Record<string, unknown>;
+      const prontuario = pacienteRecord.prontuario ?? pacienteRecord.protuario ?? "";
+      const setorPaciente = pacienteRecord.setor ?? null;
+      const pesoPaciente = pacienteRecord.peso ?? pacienteRecord.pesoKg ?? null;
+
+      setPacienteNome(paciente.nome || "");
+      setPacienteProntuario(String(prontuario || ""));
+      setPacienteSetor(
+        erro?.idSetor !== undefined && erro?.idSetor !== null
+          ? String(erro.idSetor)
+          : setorPaciente !== null && setorPaciente !== undefined
+            ? String(setorPaciente)
+            : ""
+      );
+      setPacienteLeito(paciente.leito || "");
+      setPacienteSexo(paciente.sexo || "");
+      setPacientePeso(pesoPaciente !== null && pesoPaciente !== undefined ? String(pesoPaciente) : "");
+      setPacienteDataNascimento(paciente.dataNascimento || "");
+    }
+
+    if (notificador) {
+      setNotificadorNome(notificador.nome || "");
+      setNotificadorEmail(notificador.email || "");
+      setNotificadorTelefone(notificador.telefone || "");
+      setNotificadorTipo(notificador.funcionarioGerenciaRisco ? "Funcionário da gerência de risco" : "Não");
+      setNotificadorSetor(notificador.setor !== undefined && notificador.setor !== null ? String(notificador.setor) : "");
+      setNotificadorCategoria(notificador.categoria || "");
+    }
+
+    if (erro) {
+      const valoresFormulario: Record<string, unknown> = {
+        descricaoIncidente: erro.descricao || "",
+        erro_dataInicio: erro.dataInicio || "",
+        erro_dataFim: erro.dataFim || "",
+        classificacaoIncidente: erro.classificacaoIncidente || "",
+        classificacaoDano: erro.classificacaoDano || "",
+        ocorrencia: detalhes?.ocorrencia || "",
+        descricaoErro: erro.descricao || "", // Fallback
+        efeitoNocivo: detalhes?.resultouEfeitoNocivo || "Desconhecido",
+        descricaoEfeitos: detalhes?.descricaoEfeitoNocivo || "",
+        desfecho: detalhes?.descricaoDesfecho || "",
+        causasErro: detalhes?.causaErro ? [detalhes.causaErro] : [], // Assumindo string única por enquanto
+        localErro: "", // Não tem campo direto além do setor
+        med_nomeGenerico: detalhes?.nomeGenerico || "",
+        med_posologia: detalhes?.posologia || "",
+        med_viaAdministracao: detalhes?.descricaoViaAdm || "",
+        med_dataInicio: detalhes?.dataInicioMed || "",
+        med_dataFim: detalhes?.dataFimMed || "",
+        med_indicacao: detalhes?.indicacao || "",
+        med_lote: detalhes?.lote || "",
+        med_validade: detalhes?.validade || "",
+      };
+
+      setForm((prev) => ({ ...prev, ...valoresFormulario }));
+    }
+  }, []);
+
+  const pacienteId = useMemo(() => {
+    if (modalidade === "lesao-pressao" && originalLesaoPayload) {
+      return originalLesaoPayload.dadosPaciente.idPaciente;
+    }
+    if (modalidade === "flebite" && originalFlebitePayload) {
+      return originalFlebitePayload.dadosPaciente.idPaciente;
+    }
+    if (modalidade === "reacao-adversa" && originalRamPayload) {
+      return originalRamPayload.dadosPaciente.idPaciente;
+    }
+    if (modalidade === "erro-medicacao" && originalErroPayload) {
+      return originalErroPayload.dadosPaciente.idPaciente;
+    }
+    return 0;
+  }, [modalidade, originalLesaoPayload, originalFlebitePayload, originalRamPayload, originalErroPayload]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("editNotificationData");
@@ -529,6 +678,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
+        setOriginalRamPayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -538,6 +688,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
+        setOriginalRamPayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -546,6 +697,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
+        setOriginalRamPayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -574,6 +726,24 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
           setEditNotificationId(flebiteId);
         }
         preencherFormularioFlebite(payload);
+      } else if (modalidade === "reacao-adversa" && parsed.payload) {
+        const payload = parsed.payload as unknown as PayloadRam;
+        setOriginalRamPayload(payload);
+        const ramIdRaw = payload.dadosRam?.idRam ?? parsed.notificationId;
+        const ramId = Number(ramIdRaw);
+        if (!Number.isNaN(ramId)) {
+          setEditNotificationId(ramId);
+        }
+        preencherFormularioReacaoAdversa(payload);
+      } else if (modalidade === "erro-medicacao" && parsed.payload) {
+        const payload = parsed.payload as unknown as PayloadErroMedicacao;
+        setOriginalErroPayload(payload);
+        const erroIdRaw = payload.dadosErroMedicacao?.idErroMedicacao ?? parsed.notificationId;
+        const erroId = Number(erroIdRaw);
+        if (!Number.isNaN(erroId)) {
+          setEditNotificationId(erroId);
+        }
+        preencherFormularioErroMedicacao(payload);
       } else {
         if (parsed.dadosFormulario) {
           setForm((prev) => ({ ...prev, ...parsed.dadosFormulario }));
@@ -599,7 +769,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     } catch (error) {
       console.error("Erro ao preparar dados para edição:", error);
     }
-  }, [modalidade, preencherFormularioLesaoPressao, preencherFormularioFlebite]);
+  }, [modalidade, preencherFormularioLesaoPressao, preencherFormularioFlebite, preencherFormularioReacaoAdversa, preencherFormularioErroMedicacao]);
 
   // ==================== FUNÇÕES AUXILIARES ====================
   const carregarUltimosDados = () => {
@@ -934,7 +1104,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
             dadosQueda: {
             idPaciente: 0, // Será preenchido pelo backend
             idSetor: setorId,
-            idTipoIncidente: Number(form.idTipoIncidente) || 0,
+            idTipoIncidente: 3,
             idNotificador: 0, // Será preenchido pelo backend
             dataAdmissao: String(form.dataAdmissao || ''),
             dataInicio: String(form.dataInicio || dataAtual),
@@ -1092,61 +1262,172 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         }
 
       } else if (modalidade === "reacao-adversa") {
-        const payload = {
-          dadosReacaoAdversa: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            descricaoIncidente: String(form.descricaoIncidente || ''),
-            descricaoReacao: String(form.descricaoReacao || ''),
-            reacao_dataInicio: String(form.reacao_dataInicio || ''),
-            reacao_dataFim: String(form.reacao_dataFim || ''),
-            reacao_duracao: String(form.reacao_duracao || ''),
-            reacao_desfecho: String(form.reacao_desfecho || ''),
-            med_nomeGenerico: String(form.med_nomeGenerico || ''),
-            med_provavelCausador: String(form.med_provavelCausador || ''),
-            med_fabricante: String(form.med_fabricante || ''),
-            med_lote: String(form.med_lote || ''),
-            med_posologia: String(form.med_posologia || ''),
-            med_viaAdministracao: String(form.med_viaAdministracao || ''),
-            med_dataInicio: String(form.med_dataInicio || ''),
-            med_dataFim: String(form.med_dataFim || ''),
-            med_duracao: String(form.med_duracao || ''),
-            med_indicacao: String(form.med_indicacao || ''),
-            med_acaoAdotada: String(form.med_acaoAdotada || '')
+        const ramOriginal = originalRamPayload?.dadosRam;
+        const pacienteOriginal = originalRamPayload?.dadosPaciente;
+        const notificadorOriginal = originalRamPayload?.dadosNotificador;
+        const detalhesOriginal = originalRamPayload?.detalhesRam && originalRamPayload.detalhesRam.length > 0 ? originalRamPayload.detalhesRam[0] : null;
+
+        const pacienteId = pacienteOriginal?.idPaciente ?? 0;
+        const notificadorId = notificadorOriginal?.idNotificador ?? 0;
+        const ramId = isEditMode
+          ? (ramOriginal?.idRam ?? editNotificationId ?? 0)
+          : 0;
+
+        const setorPacienteId = Number(pacienteSetor) || (ramOriginal?.idSetor ?? 0);
+        const setorNotificadorId = Number(notificadorSetor) || (notificadorOriginal?.setor ?? setorPacienteId);
+        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+
+        const dataAdmissaoRam = toDateOnly(form.dataAdmissao) ?? pacienteOriginal?.dataAdmissao ?? new Date().toISOString().split('T')[0];
+        const dataNotificacao = isEditMode && ramOriginal?.dataNotificacao
+          ? ramOriginal.dataNotificacao
+          : new Date().toISOString().split('T')[0];
+        const horaNascimento = pacienteOriginal?.horaNascimento || "00:00:00";
+
+        const payload: PayloadRam = {
+          dadosPaciente: {
+            idPaciente: pacienteId,
+            nome: pacienteNome,
+            protuario: pacienteProntuario,
+            leito: pacienteLeito,
+            sexo: pacienteSexo,
+            peso: parseDecimal(pacientePeso),
+            dataNascimento: pacienteDataNascimento,
+            horaNascimento,
+            dataAdmissao: dataAdmissaoRam,
           },
-          dadosPaciente,
-          dadosNotificador
+          dadosNotificador: {
+            idNotificador: notificadorId,
+            nome: notificadorNome,
+            email: notificadorEmail,
+            telefone: notificadorTelefone,
+            setor: setorNotificadorId,
+            categoria: notificadorCategoria,
+            funcionarioGerenciaRisco,
+          },
+          dadosRam: {
+            idPaciente: pacienteId,
+            idSetor: setorPacienteId,
+            idTipoIncidente: 1,
+            idNotificador: notificadorId,
+            dataInicio: String(form.reacao_dataInicio || ramOriginal?.dataInicio || ""),
+            dataFim: String(form.reacao_dataFim || ramOriginal?.dataFim || ""),
+            descricao: String(form.descricaoIncidente || ramOriginal?.descricao || ""),
+            dataNotificacao,
+            classificacaoIncidente: String(form.classificacaoIncidente || ramOriginal?.classificacaoIncidente || ""),
+            classificacaoDano: String(form.classificacaoDano || ramOriginal?.classificacaoDano || ""),
+            idRam: ramId,
+          },
+          detalhesRam: [
+            {
+              idMedicamento: detalhesOriginal?.idMedicamento ?? 0,
+              nomeGenerico: String(form.med_nomeGenerico || detalhesOriginal?.nomeGenerico || ""),
+              fabricante: String(form.med_fabricante || detalhesOriginal?.fabricante || ""),
+              lote: String(form.med_lote || detalhesOriginal?.lote || ""),
+              validade: null, // Não tem campo no form
+              acaoAdotada: String(form.med_acaoAdotada || detalhesOriginal?.acaoAdotada || ""),
+              medProvavelCausador: simNaoParaBoolean(form.med_provavelCausador || (detalhesOriginal?.medProvavelCausador ? "Sim" : "Não")),
+              posologia: String(form.med_posologia || detalhesOriginal?.posologia || ""),
+              indicacao: String(form.med_indicacao || detalhesOriginal?.indicacao || ""),
+              dataInicioMed: toDateOnly(form.med_dataInicio || detalhesOriginal?.dataInicioMed),
+              dataFimMed: toDateOnly(form.med_dataFim || detalhesOriginal?.dataFimMed),
+              idDesfecho: Number(form.reacao_desfecho) || detalhesOriginal?.idDesfecho || 0,
+              descricaoDesfecho: desfechos.find(d => String(d.idDesfecho) === String(form.reacao_desfecho))?.descricaoDesfecho || detalhesOriginal?.descricaoDesfecho || "",
+              idViaAdm: 10, 
+              descricaoViaAdm: String(form.med_viaAdministracao || detalhesOriginal?.descricaoViaAdm || ""),
+            }
+          ]
         };
-        resultado = await criarNotificacaoReacaoAdversa(payload);
+
+        if (isEditMode && ramId > 0) {
+          resultado = await putRam(ramId, payload);
+        } else {
+          resultado = await criarNotificacaoReacaoAdversa(payload);
+        }
 
       } else if (modalidade === "erro-medicacao") {
-        const payload = {
-          dadosErroMedicacao: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            descricaoIncidente: String(form.descricaoIncidente || ''),
-            erro_dataInicio: String(form.erro_dataInicio || ''),
-            erro_dataFim: String(form.erro_dataFim || ''),
-            ocorrencia: String(form.ocorrencia || ''),
-            descricaoErro: String(form.descricaoErro || ''),
-            efeitoNocivo: String(form.efeitoNocivo || ''),
-            descricaoEfeitos: String(form.descricaoEfeitos || ''),
-            desfecho: String(form.desfecho || ''),
-            causasErro: Array.isArray(form.causasErro) ? form.causasErro as string[] : [],
-            localErro: String(form.localErro || ''),
-            med_nomeGenerico: String(form.med_nomeGenerico || ''),
-            med_posologia: String(form.med_posologia || ''),
-            med_viaAdministracao: String(form.med_viaAdministracao || ''),
-            med_dataInicio: String(form.med_dataInicio || ''),
-            med_dataFim: String(form.med_dataFim || ''),
-            med_indicacao: String(form.med_indicacao || ''),
-            med_lote: String(form.med_lote || ''),
-            med_validade: String(form.med_validade || '')
+        const erroOriginal = originalErroPayload?.dadosErroMedicacao;
+        const pacienteOriginal = originalErroPayload?.dadosPaciente;
+        const notificadorOriginal = originalErroPayload?.dadosNotificador;
+        const detalhesOriginal = originalErroPayload?.detalhesErros && originalErroPayload.detalhesErros.length > 0 ? originalErroPayload.detalhesErros[0] : null;
+
+        const pacienteId = pacienteOriginal?.idPaciente ?? 0;
+        const notificadorId = notificadorOriginal?.idNotificador ?? 0;
+        const erroId = isEditMode
+          ? (erroOriginal?.idErroMedicacao ?? editNotificationId ?? 0)
+          : 0;
+
+        const setorPacienteId = Number(pacienteSetor) || (erroOriginal?.idSetor ?? 0);
+        const setorNotificadorId = Number(notificadorSetor) || (notificadorOriginal?.setor ?? setorPacienteId);
+        const funcionarioGerenciaRisco = notificadorTipo === "Funcionário da gerência de risco";
+
+        const dataAdmissaoErro = toDateOnly(form.dataAdmissao) ?? pacienteOriginal?.dataAdmissao ?? new Date().toISOString().split('T')[0];
+        const dataNotificacao = isEditMode && erroOriginal?.dataNotificacao
+          ? erroOriginal.dataNotificacao
+          : new Date().toISOString().split('T')[0];
+        const horaNascimento = pacienteOriginal?.horaNascimento || "00:00:00";
+
+        const payload: PayloadErroMedicacao = {
+          dadosPaciente: {
+            idPaciente: pacienteId,
+            nome: pacienteNome,
+            protuario: pacienteProntuario,
+            leito: pacienteLeito,
+            sexo: pacienteSexo,
+            peso: parseDecimal(pacientePeso),
+            dataNascimento: pacienteDataNascimento,
+            horaNascimento,
+            dataAdmissao: dataAdmissaoErro,
           },
-          dadosPaciente,
-          dadosNotificador
+          dadosNotificador: {
+            idNotificador: notificadorId,
+            nome: notificadorNome,
+            email: notificadorEmail,
+            telefone: notificadorTelefone,
+            setor: setorNotificadorId,
+            categoria: notificadorCategoria,
+            funcionarioGerenciaRisco,
+          },
+          dadosErroMedicacao: {
+            idPaciente: pacienteId,
+            idSetor: setorPacienteId,
+            idTipoIncidente: 2,
+            idNotificador: notificadorId,
+            dataInicio: String(form.erro_dataInicio || erroOriginal?.dataInicio || ""),
+            dataFim: String(form.erro_dataFim || erroOriginal?.dataFim || ""),
+            descricao: String(form.descricaoIncidente || erroOriginal?.descricao || ""),
+            dataNotificacao,
+            classificacaoIncidente: String(form.classificacaoIncidente || erroOriginal?.classificacaoIncidente || ""),
+            classificacaoDano: String(form.classificacaoDano || erroOriginal?.classificacaoDano || ""),
+            idErroMedicacao: erroId,
+          },
+          detalhesErros: [
+            {
+              idMedicamento: detalhesOriginal?.idMedicamento ?? 0,
+              nomeGenerico: String(form.med_nomeGenerico || detalhesOriginal?.nomeGenerico || ""),
+              fabricante: "", // Não tem campo
+              lote: String(form.med_lote || detalhesOriginal?.lote || ""),
+              validade: toDateOnly(form.med_validade || detalhesOriginal?.validade),
+              ocorrencia: String(form.ocorrencia || detalhesOriginal?.ocorrencia || ""),
+              resultouEfeitoNocivo: String(form.efeitoNocivo || detalhesOriginal?.resultouEfeitoNocivo || ""),
+              descricaoEfeitoNocivo: String(form.descricaoEfeitos || detalhesOriginal?.descricaoEfeitoNocivo || ""),
+              causaErro: Array.isArray(form.causasErro) ? (form.causasErro as string[]).join(", ") : (detalhesOriginal?.causaErro || ""),
+              idDesfecho: Number(form.desfecho) || detalhesOriginal?.idDesfecho || 0,
+              descricaoDesfecho: desfechos.find(d => String(d.idDesfecho) === String(form.desfecho))?.descricaoDesfecho || detalhesOriginal?.descricaoDesfecho || "",
+              idViaAdm: 10, 
+              descricaoViaAdm: String(form.med_viaAdministracao || detalhesOriginal?.descricaoViaAdm || ""),
+              posologia: String(form.med_posologia || detalhesOriginal?.posologia || ""),
+              dataInicioMed: toDateOnly(form.med_dataInicio || detalhesOriginal?.dataInicioMed),
+              dataFimMed: toDateOnly(form.med_dataFim || detalhesOriginal?.dataFimMed),
+              indicacao: String(form.med_indicacao || detalhesOriginal?.indicacao || ""),
+            }
+          ]
         };
-        resultado = await criarNotificacaoErroMedicacao(payload);
+
+        if (isEditMode && erroId > 0) {
+          resultado = await putErroMedicacao(erroId, payload);
+        } else {
+          resultado = await criarNotificacaoErroMedicacao(payload);
+        }
 
       } else {
         // Para modalidades ainda não implementadas
