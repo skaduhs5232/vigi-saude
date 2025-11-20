@@ -25,8 +25,8 @@ import {
 } from "./services/lesao-pressao.service";
 import { criarNotificacaoQueda } from "./services/queda.service";
 import { criarNotificacaoFlebite, putFlebite, PayloadNotificacaoFlebite, MedicamentoFlebite } from "./services/flebite.service";
-import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao } from "./services/reacao-adversa.service";
-import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro } from "./services/erro-medicacao.service";
+import { criarNotificacaoReacaoAdversa, obterDesfechos as obterDesfechosReacao, PayloadNotificacaoReacaoAdversa } from "./services/reacao-adversa.service";
+import { criarNotificacaoErroMedicacao, obterDesfechos as obterDesfechosErro, PayloadNotificacaoErroMedicacao } from "./services/erro-medicacao.service";
 import { DadosPaciente, DadosNotificador } from "./interfaces/padroes";
 import { useDadosDinamicos } from "./hooks/useDadosDinamicos";
 
@@ -1092,60 +1092,95 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         }
 
       } else if (modalidade === "reacao-adversa") {
-        const payload = {
-          dadosReacaoAdversa: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            descricaoIncidente: String(form.descricaoIncidente || ''),
-            descricaoReacao: String(form.descricaoReacao || ''),
-            reacao_dataInicio: String(form.reacao_dataInicio || ''),
-            reacao_dataFim: String(form.reacao_dataFim || ''),
-            reacao_duracao: String(form.reacao_duracao || ''),
-            reacao_desfecho: String(form.reacao_desfecho || ''),
-            med_nomeGenerico: String(form.med_nomeGenerico || ''),
-            med_provavelCausador: String(form.med_provavelCausador || ''),
-            med_fabricante: String(form.med_fabricante || ''),
-            med_lote: String(form.med_lote || ''),
-            med_posologia: String(form.med_posologia || ''),
-            med_viaAdministracao: String(form.med_viaAdministracao || ''),
-            med_dataInicio: String(form.med_dataInicio || ''),
-            med_dataFim: String(form.med_dataFim || ''),
-            med_duracao: String(form.med_duracao || ''),
-            med_indicacao: String(form.med_indicacao || ''),
-            med_acaoAdotada: String(form.med_acaoAdotada || '')
-          },
-          dadosPaciente,
-          dadosNotificador
-        };
+
+  const payload: PayloadNotificacaoReacaoAdversa = {
+    dadosPaciente: {
+      nome: pacienteNome,
+      prontuario: pacienteProntuario,
+      leito: pacienteLeito,
+      sexo: pacienteSexo,
+      peso: Number(pacientePeso) || 0,
+      dataNascimento: pacienteDataNascimento,
+      horaNascimento: "00:00:00",
+      dataAdmissao: pacienteDataNascimento,
+    },
+    dadosNotificador: {
+      nome: notificadorNome,
+      email: notificadorEmail,
+      telefone: notificadorTelefone,
+      setor: Number(notificadorSetor) || 0,
+      categoria: notificadorCategoria,
+      funcionarioGerenciaRisco: notificadorTipo === "Funcionário da gerência de risco",
+    },
+    dadosReacaoAdversa: {
+      reacao_dataInicio: String(form.reacao_dataInicio || ''),
+      reacao_dataFim: String(form.reacao_dataFim || ''),
+      reacao_desfecho: String(form.reacao_desfecho || ''),
+      descricaoIncidente: String(form.descricaoIncidente || ''),
+      descricaoReacao: String(form.descricaoReacao || ''),
+      med_viaAdministracao: String(form.med_viaAdministracao || ''),
+      med_acaoAdotada: String(form.med_acaoAdotada || ''),
+      med_provavelCausador: String(form.med_provavelCausador || ''),
+      classificacaoDano: "Leve",
+    },
+    medicamentos: [
+      {
+        nomeGenerico: String(form.med_nomeGenerico || ''),
+        fabricante: String(form.med_fabricante || ''),
+        lote: String(form.med_lote || ''),
+        validade: String(form.med_validade || '') || null,
+        posologia: String(form.med_posologia || ''),
+        indicacao: String(form.med_indicacao || ''),
+        dataInicioMed: String(form.med_dataInicio || '') || null,
+        dataFimMed: String(form.med_dataFim || '') || null,
+      }
+    ]
+  };
+        console.log('📦 Payload Reação Adversa:', JSON.stringify(payload, null, 2));
         resultado = await criarNotificacaoReacaoAdversa(payload);
 
       } else if (modalidade === "erro-medicacao") {
-        const payload = {
-          dadosErroMedicacao: {
-            idadeMomentoValor: Number(form.idadeMomentoValor) || 0,
-            idadeMomentoUnidade: String(form.idadeMomentoUnidade || ''),
-            descricaoIncidente: String(form.descricaoIncidente || ''),
-            erro_dataInicio: String(form.erro_dataInicio || ''),
-            erro_dataFim: String(form.erro_dataFim || ''),
-            ocorrencia: String(form.ocorrencia || ''),
-            descricaoErro: String(form.descricaoErro || ''),
-            efeitoNocivo: String(form.efeitoNocivo || ''),
-            descricaoEfeitos: String(form.descricaoEfeitos || ''),
-            desfecho: String(form.desfecho || ''),
-            causasErro: Array.isArray(form.causasErro) ? form.causasErro as string[] : [],
-            localErro: String(form.localErro || ''),
-            med_nomeGenerico: String(form.med_nomeGenerico || ''),
-            med_posologia: String(form.med_posologia || ''),
-            med_viaAdministracao: String(form.med_viaAdministracao || ''),
-            med_dataInicio: String(form.med_dataInicio || ''),
-            med_dataFim: String(form.med_dataFim || ''),
-            med_indicacao: String(form.med_indicacao || ''),
-            med_lote: String(form.med_lote || ''),
-            med_validade: String(form.med_validade || '')
-          },
-          dadosPaciente,
-          dadosNotificador
-        };
+  const payload: PayloadNotificacaoErroMedicacao = {
+    dadosPaciente: {
+      nome: pacienteNome,
+      prontuario: pacienteProntuario,
+      leito: pacienteLeito,
+      sexo: pacienteSexo,
+      peso: Number(pacientePeso) || 0,
+      dataNascimento: pacienteDataNascimento,
+      horaNascimento: "00:00:00",
+      dataAdmissao: pacienteDataNascimento,
+    },
+    dadosNotificador: {
+      nome: notificadorNome,
+      email: notificadorEmail,
+      telefone: notificadorTelefone,
+      setor: Number(notificadorSetor) || 0,
+      categoria: notificadorCategoria,
+      funcionarioGerenciaRisco: notificadorTipo === "Funcionário da gerência de risco",
+    },
+    dadosErroMedicacao: {
+      erro_dataInicio: String(form.erro_dataInicio || ''),
+      erro_dataFim: String(form.erro_dataFim || ''),
+      ocorrencia: String(form.ocorrencia || ''),
+      descricaoIncidente: String(form.descricaoIncidente || ''),
+      efeitoNocivo: String(form.efeitoNocivo || ''),
+      descricaoEfeitos: String(form.descricaoEfeitos || ''),
+      causasErro: Array.isArray(form.causasErro) ? form.causasErro as string[] : [],
+      localErro: String(form.localErro || ''),
+      desfecho: String(form.desfecho || ''),
+      med_nomeGenerico: String(form.med_nomeGenerico || ''),
+      med_fabricante: String(form.med_fabricante || ''),
+      med_lote: String(form.med_lote || ''),
+      med_validade: String(form.med_validade || '') || null,
+      med_viaAdministracao: String(form.med_viaAdministracao || ''),
+      med_posologia: String(form.med_posologia || ''),
+      med_dataInicio: String(form.med_dataInicio || '') || null,
+      med_dataFim: String(form.med_dataFim || '') || null,
+      med_indicacao: String(form.med_indicacao || ''),
+    }
+  };
+        console.log('📦 Payload Erro de Medicação:', JSON.stringify(payload, null, 2));
         resultado = await criarNotificacaoErroMedicacao(payload);
 
       } else {
