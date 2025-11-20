@@ -4,6 +4,18 @@ export { criarNotificacaoFlebite } from './flebite.service';
 export { criarNotificacaoReacaoAdversa } from './reacao-adversa.service';
 export { criarNotificacaoErroMedicacao } from './erro-medicacao.service';
 
+
+export { 
+  buscarTodosErrosMedicacao,
+  buscarErroMedicacaoPorId 
+} from './erro-medicacao.service';
+
+export { 
+  buscarTodasReacoesAdversas,
+  buscarReacaoAdversaPorId 
+} from './reacao-adversa.service';
+
+
 export type { PayloadNotificacaoLesaoPressao } from './lesao-pressao.service';
 export type { PayloadNotificacaoQueda } from './queda.service';
 export type { PayloadNotificacaoFlebite } from './flebite.service';
