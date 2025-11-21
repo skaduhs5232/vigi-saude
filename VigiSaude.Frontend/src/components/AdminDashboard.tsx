@@ -17,6 +17,14 @@ import { CreateNotificationDialog } from "@/components/notifications/CreateNotif
 import { NotifierDialog } from "@/components/notifier/NotifierDialog";
 import { Notifier } from "@/components/notifier/NotifierForm";
 import { NotificationRecord } from "@/components/notifications/NotificationModule";
+import { 
+  NotificationsByTypeChart, 
+  TrendsChart, 
+  SeverityAnalysisChart,
+  HeatmapChart,
+  GaugeChart,
+  TimelineChart
+} from "@/components/charts";
 
 const dashboardStats = [
   {
@@ -181,22 +189,16 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        {/* Chart Placeholder */}
+        {/* Trends Chart */}
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Tendência de Notificações</CardTitle>
             <CardDescription>
-              Volume de notificações por módulo nos últimos 6 meses
+              Volume de notificações por módulo nos últimos 12 meses
             </CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-80 bg-muted/20 rounded-lg flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-sm">Gráfico de tendências seria exibido aqui</p>
-                <p className="text-xs">Integração com biblioteca de gráficos</p>
-              </div>
-            </div>
+          <CardContent>
+            <TrendsChart />
           </CardContent>
         </Card>
 
@@ -237,6 +239,81 @@ export function AdminDashboard() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Charts Section */}
+      <div className="grid gap-6 md:grid-cols-12">
+        {/* Distribution by Type */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Distribuição por Tipo</CardTitle>
+            <CardDescription>
+              Proporção de notificações por modalidade
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NotificationsByTypeChart />
+          </CardContent>
+        </Card>
+
+        {/* Severity Analysis */}
+        <Card className="col-span-5">
+          <CardHeader>
+            <CardTitle>Análise de Gravidade</CardTitle>
+            <CardDescription>
+              Distribuição de casos por nível de gravidade
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SeverityAnalysisChart />
+          </CardContent>
+        </Card>
+
+        {/* Performance Gauge */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Performance</CardTitle>
+            <CardDescription>
+              Índice de resolução de casos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GaugeChart 
+              value={78} 
+              title="Resolução" 
+              unit="%" 
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Heatmap and Timeline Section */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Heatmap */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Mapa de Calor</CardTitle>
+            <CardDescription>
+              Distribuição de notificações por setor e horário
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HeatmapChart />
+          </CardContent>
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Timeline de Casos</CardTitle>
+            <CardDescription>
+              Acompanhamento de casos em investigação
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TimelineChart />
           </CardContent>
         </Card>
       </div>
