@@ -29,7 +29,7 @@ interface AuthContextValue {
 }
 
 const SESSION_STORAGE_KEY = "vigiSaudeAuthSession";
-const AUTH_BASE_URL = "http://187.110.234.72:5505";
+const AUTH_BASE_URL = "https://vigisaude.cleitonween.com.br";
 const LOGIN_URL = `${AUTH_BASE_URL}/login?useCookies=false&useSessionCookies=false`;
 const REGISTER_URL = `${AUTH_BASE_URL}/register`;
 

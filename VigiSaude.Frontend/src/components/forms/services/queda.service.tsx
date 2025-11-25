@@ -61,7 +61,7 @@ export interface PayloadNotificacaoQueda {
   dadosQueda: DadosFormularioQueda;
 }
 
-const API_BASE_URL = 'http://187.110.234.72:5505';
+const API_BASE_URL = 'https://vigisaude.cleitonween.com.br';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const criarNotificacaoQueda = async (
