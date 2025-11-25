@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   // Important for GitHub Pages when deploying under a repository subpath
   // In dev we keep "/"; in production we set the repo name subpath
-  base: mode === "development" ? "/" : "/vigi-saude/",
+  base: "/",
   server: {
     host: "::",
     port: 4200,
