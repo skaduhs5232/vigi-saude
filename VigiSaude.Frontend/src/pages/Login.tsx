@@ -26,8 +26,8 @@ const Login = () => {
 
   const title = useMemo(() => (mode === "login" ? "Acesse sua conta" : "Crie sua conta"), [mode]);
   const ctaLabel = useMemo(() => (mode === "login" ? "Entrar" : "Registrar"), [mode]);
-  const toggleLabel = useMemo(() => (mode === "login" ? "Ainda não possui conta?" : "Já possui conta?"), [mode]);
-  const toggleAction = useMemo(() => (mode === "login" ? "Crie uma conta" : "Faça login"), [mode]);
+/*   const toggleLabel = useMemo(() => (mode === "login" ? "Ainda não possui conta?" : "Já possui conta?"), [mode]);
+  const toggleAction = useMemo(() => (mode === "login" ? "Crie uma conta" : "Faça login"), [mode]); */
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -92,16 +92,7 @@ const Login = () => {
 
           <CardContent>
             <h2 className="mb-6 text-center text-lg font-semibold text-foreground">{title}</h2>
-            <div className="mb-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>{toggleLabel}</span>
-              <button
-                type="button"
-                className="font-medium text-primary hover:underline"
-                onClick={() => handleModeChange(mode === "login" ? "register" : "login")}
-              >
-                {toggleAction}
-              </button>
-            </div>
+           
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               {mode === "register" && (

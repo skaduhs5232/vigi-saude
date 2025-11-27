@@ -224,19 +224,119 @@ export function NotificationModule({ titulo, subtitulo, tipoModulo, dados, onAdi
       toast.info("Nada para exportar no filtro atual.");
       return;
     }
+
+    // Função para formatar dados de formulário específicos por tipo
+    const formatarDadosFormulario = (d: NotificationRecord) => {
+      const modalidade = d.modalidade || getModalidadeFromTipo(d.tipo);
+      const form = d.dadosFormulario || {};
+
+      switch (modalidade) {
+        case "queda":
+          return {
+            "Diagnóstico": form.diagnostico || "",
+            "Tipo Queda ID": form.tipoQuedaId || "",
+            "Local Queda ID": form.localQuedaId || "",
+            "Horário": form.horario || "",
+            "Turno": form.turno || "",
+            "Desfecho": form.desfecho || "",
+            "Avaliação Risco Admissão": form.avaliacaoRiscoAdmissao ? "Sim" : "Não",
+            "Registro Orientação Prontuário": form.registroOrientacaoProntuario ? "Sim" : "Não",
+            "Risco Identificado Admissão": form.riscoIdentificadoAdmissao ? "Sim" : "Não",
+            "Paciente Com Acompanhante": form.pacienteComAcompanhante ? "Sim" : "Não",
+            "Qtd Med. Baixo Risco": form.qtdMedBaixoRisco || 0,
+            "Qtd Med. Médio Risco": form.qtdMedMedioRisco || 0,
+            "Qtd Med. Alto Risco": form.qtdMedAltoRisco || 0,
+            "Classificação Incidente": form.classificacaoIncidente || "",
+            "Classificação Dano": form.classificacaoDano || "",
+          };
+        case "lesao-pressao":
+          return {
+            "Data 1ª Avaliação": form.dataPrimeiraAvaliacao || "",
+            "Classificação Braden": form.classificacaoBraden || "",
+            "Escore Braden": form.escoreBraden || "",
+            "Reavaliação 48h": form.reavaliacao48Horas || "",
+            "Mobilidade Prejudicada": form.mobilidadePrejudicada ? "Sim" : "Não",
+            "Responsável Avaliação": form.responsavelAvaliacao || "",
+            "Registro SAE": form.resgistroSAE || "",
+            "Mudança Decúbito": form.mudancaDecubito ? "Sim" : "Não",
+            "Intervalo Mudança (h)": form.intervaloMudanca || "",
+            "Tempo Internação Lesão": form.tempoInternacaoLesao || "",
+            "Local Lesão ID": form.idLocalLesao || "",
+            "Estágio Lesão": form.estagioLesao || "",
+            "Superfície Dinâmica Apoio": form.superficeDinamicaApoio ? "Sim" : "Não",
+            "Avaliação Nutricionista": form.solicitacaoAvaliacaoNutri ? "Sim" : "Não",
+            "Registro Avaliação Nutri": form.registroAvaliacaoNutri ? "Sim" : "Não",
+            "Registro Avaliação Fisio": form.registroavaliacaoFisio ? "Sim" : "Não",
+            "Registro Enfermagem": form.registroEnfermagem ? "Sim" : "Não",
+            "Uso Cobertura Adequada": form.usoCoberturaAdequada || "",
+            "Classificação Incidente": form.classificacaoIncidente || "",
+            "Classificação Dano": form.classificacaoDano || "",
+          };
+        case "flebite":
+          return {
+            "Diagnóstico": form.diagnostico || "",
+            "Grau Flebite": form.grauFlebite || "",
+            "Local Punção": form.localPuncao || "",
+            "Qtd Punções até Incidente": form.qtdPuncoesAteIncidente || "",
+            "Tipo Cateter": form.tipoCateter || "",
+            "Calibre Cateter": form.calibreCateter || "",
+            "Nº Cateteres Inseridos": form.numCateteresInseridos || "",
+            "Tempo Permanência Acesso (h)": form.tempoPermanenciaAcesso || "",
+            "Qtd Med. Vesicante/Irritante": form.qtdMedVesicanteIrritante || "",
+            "Classificação Incidente": form.classificacaoIncidente || "",
+            "Classificação Dano": form.classificacaoDano || "",
+          };
+        case "reacao-adversa":
+          return {
+            "Classificação Incidente": form.classificacaoIncidente || "",
+            "Classificação Dano": form.classificacaoDano || "",
+            "Data Início": form.dataInicio || "",
+            "Data Fim": form.dataFim || "",
+          };
+        case "erro-medicacao":
+          return {
+            "Classificação Incidente": form.classificacaoIncidente || "",
+            "Classificação Dano": form.classificacaoDano || "",
+            "Data Início": form.dataInicio || "",
+            "Data Fim": form.dataFim || "",
+          };
+        default:
+          return {};
+      }
+    };
+
     const plain = filtrados.map((d) => ({
+      // Dados básicos
       ID: d.id,
       Tipo: d.tipo,
       Título: d.titulo,
       Descrição: d.descricao,
-  "Descrição adicional": d.descricaoAdicional || "",
+      "Descrição Adicional": d.descricaoAdicional || "",
       Severidade: d.severidade,
       Status: d.status,
       Data: d.data,
+      // Dados do paciente
+      "Paciente - Nome": d.dadosPaciente?.nome || "",
+      "Paciente - Prontuário": d.dadosPaciente?.prontuario || "",
+      "Paciente - Setor": d.dadosPaciente?.setor || "",
+      "Paciente - Leito": d.dadosPaciente?.leito || "",
+      "Paciente - Sexo": d.dadosPaciente?.sexo || "",
+      "Paciente - Peso": d.dadosPaciente?.peso || "",
+      "Paciente - Data Nascimento": d.dadosPaciente?.dataNascimento || "",
+      // Dados do notificador
+      "Notificador - Nome": d.dadosNotificador?.nome || "",
+      "Notificador - Email": d.dadosNotificador?.email || "",
+      "Notificador - Telefone": d.dadosNotificador?.telefone || "",
+      "Notificador - Tipo": d.dadosNotificador?.tipo || "",
+      "Notificador - Setor": d.dadosNotificador?.setor || "",
+      "Notificador - Categoria": d.dadosNotificador?.categoria || "",
+      // Dados específicos do formulário
+      ...formatarDadosFormulario(d),
     }));
+
     const ws = XLSX.utils.json_to_sheet(plain);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, tipoModulo);
+    XLSX.utils.book_append_sheet(wb, ws, tipoModulo.substring(0, 31)); // Excel limita nome da aba a 31 caracteres
     XLSX.writeFile(wb, `${tipoModulo}-notificacoes.xlsx`);
     toast.success("Exportação concluída");
   };

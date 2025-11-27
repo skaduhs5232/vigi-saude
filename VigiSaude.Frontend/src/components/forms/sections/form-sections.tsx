@@ -142,9 +142,9 @@ export function DadosNotificadorSection({
             Informe seus dados (todos opcionais, exceto o vínculo com a gerência de risco)
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onCarregarUltimosDados} className="shrink-0">
+        {/* <Button type="button" variant="outline" size="sm" onClick={onCarregarUltimosDados} className="shrink-0">
           Últimos dados
-        </Button>
+        </Button> */}
       </div>
       <div className="space-y-2">
         <Label htmlFor="notificadorNome">Nome</Label>

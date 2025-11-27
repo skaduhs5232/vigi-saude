@@ -95,12 +95,12 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "intervaloMudanca", type: "select", label: "Intervalo mudança", options: ["2h", "3h", "Outro"] },
       { id: "tempoInternacaoLesao", type: "select", label: "Tempo internação até lesão", options: ["0-14 dias", "15-30 dias", "31-45 dias", "Acima de 45 dias"] },
       { id: "localLesao", type: "multiselect", label: "Local da lesão", options: ["Sacral", "Calcâneo", "Trocânter", "Coluna vertebral", "Occipital", "Panturrilha", "Joelho", "Pavilhão auricular", "Outro"] },
-      { id: "estagioLesao", type: "select", label: "Estágio", options: ["I", "II", "III", "IV", "Indeterminado"] },
+      { id: "estagioLesao", type: "select", label: "Estágio", options: ["I", "II", "III", "IV", "Inclassificável", "Tissular Prof."] },
       { id: "usoColchaoDinamico", type: "radio", label: "Uso colchão dinâmico", options: ["Sim", "Não"] },
       { id: "avaliacaoNutricionista", type: "radio", label: "Avaliação nutricionista", options: ["Sim", "Não"] },
       { id: "registroAvaliacaoNutricional", type: "radio", label: "Registro avaliação nutricional", options: ["Sim", "Não"] },
       { id: "registroAvaliacaoFisioterapia", type: "radio", label: "Registro avaliação fisioterapia", options: ["Sim", "Não"] },
-      { id: "registroIncidenteEnfermagem", type: "radio", label: "Registro incidente enfermagem", options: ["Sim", "Não"] },
+      { id: "registroIncidenteEnfermagem", type: "radio", label: "Registro do incidente na evolução de enfermagem", options: ["Sim", "Não"] },
       { id: "usoCoberturaAdequada", type: "radio", label: "Uso cobertura adequada", options: ["Sim", "Não", "Sem registro"] },
     ],
   },
@@ -121,7 +121,7 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "numeroCateteresLumen", type: "number", label: "Nº lúmens", min: 0 },
       { id: "tempoPermanencia", type: "text", label: "Tempo permanência" },
       { id: "dataRetirada", type: "date", label: "Data retirada" },
-      { id: "usoMedicamentosVesicantes", type: "radio", label: "Uso medicamentos vesicantes", options: ["Sim", "Não"] },
+      { id: "usoMedicamentosVesicantes", type: "radio", label: "Uso medicamentos vesicantes / irritante", options: ["Sim", "Não"] },
       { id: "medicamentosAdministrados_medicamento", type: "text", label: "Medicamento administrado" },
       { id: "medicamentosAdministrados_diluente", type: "text", label: "Diluente" },
       { id: "medicamentosAdministrados_modoInfusao", type: "text", label: "Modo infusão" },
@@ -147,6 +147,7 @@ const schemas: Record<string, ModalidadeSchema> = {
       { id: "med_provavelCausador", type: "radio", label: "Provável causador", options: ["Sim", "Não"] },
       { id: "med_fabricante", type: "text", label: "Fabricante" },
       { id: "med_lote", type: "text", label: "Lote" },
+      { id: "med_validade", type: "date", label: "Validade" },
       { id: "med_posologia", type: "text", label: "Posologia" },
       { id: "med_viaAdministracao", type: "select", label: "Via administração", options: viaAdministracaoOpcoes },
       { id: "med_dataInicio", type: "date", label: "Início uso" },
@@ -357,23 +358,24 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
     }
   }, [notificadorValues]);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("lastNotificadorData");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (!notificadorNome && parsed.nome) setNotificadorNome(parsed.nome);
-        if (!notificadorEmail && parsed.email) setNotificadorEmail(parsed.email);
-        if (!notificadorTelefone && parsed.telefone) setNotificadorTelefone(parsed.telefone);
-        if (!notificadorTipo && parsed.tipo) setNotificadorTipo(parsed.tipo);
-        if (!notificadorSetor && parsed.setor) setNotificadorSetor(parsed.setor);
-        if (!notificadorCategoria && parsed.categoria) setNotificadorCategoria(parsed.categoria);
-      }
-    } catch {
-      // ts-ignore
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // useEffect para carregar dados do notificador desativado - agora carrega apenas sob demanda
+  // useEffect(() => {
+  //   try {
+  //     const raw = localStorage.getItem("lastNotificadorData");
+  //     if (raw) {
+  //       const parsed = JSON.parse(raw);
+  //       if (!notificadorNome && parsed.nome) setNotificadorNome(parsed.nome);
+  //       if (!notificadorEmail && parsed.email) setNotificadorEmail(parsed.email);
+  //       if (!notificadorTelefone && parsed.telefone) setNotificadorTelefone(parsed.telefone);
+  //       if (!notificadorTipo && parsed.tipo) setNotificadorTipo(parsed.tipo);
+  //       if (!notificadorSetor && parsed.setor) setNotificadorSetor(parsed.setor);
+  //       if (!notificadorCategoria && parsed.categoria) setNotificadorCategoria(parsed.categoria);
+  //     }
+  //   } catch {
+  //     // ts-ignore
+  //   }
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   const booleanToRadioValue = useCallback((valor: boolean | null | undefined, allowSemRegistro = false): string => {
     if (valor === true) return "Sim";
@@ -580,6 +582,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         med_provavelCausador: detalhes?.medProvavelCausador ? "Sim" : "Não",
         med_fabricante: detalhes?.fabricante || "",
         med_lote: detalhes?.lote || "",
+        med_validade: detalhes?.validade || "",
         med_posologia: detalhes?.posologia || "",
         med_viaAdministracao: detalhes?.descricaoViaAdm || "",
         med_dataInicio: detalhes?.dataInicioMed || "",
@@ -683,6 +686,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
         setOriginalRamPayload(null);
+        setOriginalErroPayload(null);
         setEditNotificationId(null);
         return;
       }
@@ -693,23 +697,39 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
         setOriginalRamPayload(null);
+        setOriginalErroPayload(null);
         setEditNotificationId(null);
         return;
       }
 
+      // Verifica se a modalidade do payload corresponde à modalidade atual
       if (parsed.modalidade && parsed.modalidade !== modalidade) {
         setIsEditMode(false);
         setOriginalLesaoPayload(null);
         setOriginalFlebitePayload(null);
         setOriginalRamPayload(null);
+        setOriginalErroPayload(null);
         setEditNotificationId(null);
         return;
       }
 
+      // Verifica se há payload válido para a modalidade específica
+      // Só ativa modo de edição se houver payload com dados válidos
+      if (!parsed.payload) {
+        setIsEditMode(false);
+        setOriginalLesaoPayload(null);
+        setOriginalFlebitePayload(null);
+        setOriginalRamPayload(null);
+        setOriginalErroPayload(null);
+        setEditNotificationId(null);
+        return;
+      }
+
+      // Agora sim, temos dados válidos para edição
       setIsEditMode(true);
 
       const notificationId = Number(parsed.notificationId);
-      const hasValidId = !Number.isNaN(notificationId);
+      const hasValidId = !Number.isNaN(notificationId) && notificationId > 0;
       setEditNotificationId(hasValidId ? notificationId : null);
 
       if (modalidade === "lesao-pressao" && parsed.payload) {
@@ -717,7 +737,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalLesaoPayload(payload);
         const lesaoIdRaw = payload.dadosLesaoPressao?.idLesaoPressao ?? parsed.notificationId;
         const lesaoId = Number(lesaoIdRaw);
-        if (!Number.isNaN(lesaoId)) {
+        if (!Number.isNaN(lesaoId) && lesaoId > 0) {
           setEditNotificationId(lesaoId);
         }
         preencherFormularioLesaoPressao(payload);
@@ -726,7 +746,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalFlebitePayload(payload);
         const flebiteIdRaw = payload.dadosFlebite?.idFlebite ?? parsed.notificationId;
         const flebiteId = Number(flebiteIdRaw);
-        if (!Number.isNaN(flebiteId)) {
+        if (!Number.isNaN(flebiteId) && flebiteId > 0) {
           setEditNotificationId(flebiteId);
         }
         preencherFormularioFlebite(payload);
@@ -735,7 +755,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalRamPayload(payload);
         const ramIdRaw = payload.dadosRam?.idRam ?? parsed.notificationId;
         const ramId = Number(ramIdRaw);
-        if (!Number.isNaN(ramId)) {
+        if (!Number.isNaN(ramId) && ramId > 0) {
           setEditNotificationId(ramId);
         }
         preencherFormularioReacaoAdversa(payload);
@@ -744,11 +764,12 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
         setOriginalErroPayload(payload);
         const erroIdRaw = payload.dadosErroMedicacao?.idErroMedicacao ?? parsed.notificationId;
         const erroId = Number(erroIdRaw);
-        if (!Number.isNaN(erroId)) {
+        if (!Number.isNaN(erroId) && erroId > 0) {
           setEditNotificationId(erroId);
         }
         preencherFormularioErroMedicacao(payload);
       } else {
+        // Para outras modalidades, usa os dados genéricos se disponíveis
         if (parsed.dadosFormulario) {
           setForm((prev) => ({ ...prev, ...parsed.dadosFormulario }));
         }
@@ -772,6 +793,13 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       }
     } catch (error) {
       console.error("Erro ao preparar dados para edição:", error);
+      // Em caso de erro, garante que não está em modo de edição
+      setIsEditMode(false);
+      setOriginalLesaoPayload(null);
+      setOriginalFlebitePayload(null);
+      setOriginalRamPayload(null);
+      setOriginalErroPayload(null);
+      setEditNotificationId(null);
     }
   }, [modalidade, preencherFormularioLesaoPressao, preencherFormularioFlebite, preencherFormularioReacaoAdversa, preencherFormularioErroMedicacao]);
 
@@ -781,15 +809,18 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
       const raw = localStorage.getItem("lastNotificadorData");
       if (raw) {
         const parsed = JSON.parse(raw);
-        setNotificadorNome(parsed.nome || "");
-        setNotificadorEmail(parsed.email || "");
-        setNotificadorTelefone(parsed.telefone || "");
-        setNotificadorTipo(parsed.tipo || "");
-        setNotificadorSetor(parsed.setor || "");
-        setNotificadorCategoria(parsed.categoria || "");
+        if (parsed.nome) setNotificadorNome(parsed.nome);
+        if (parsed.email) setNotificadorEmail(parsed.email);
+        if (parsed.telefone) setNotificadorTelefone(parsed.telefone);
+        if (parsed.tipo) setNotificadorTipo(parsed.tipo);
+        if (parsed.setor) setNotificadorSetor(parsed.setor);
+        if (parsed.categoria) setNotificadorCategoria(parsed.categoria);
+        toast.success("Dados do último notificador carregados!");
+      } else {
+        toast.info("Nenhum dado de notificador salvo anteriormente.");
       }
     } catch {
-      // ts-ignore
+      toast.error("Erro ao carregar dados do notificador.");
     }
   };
 
@@ -1327,7 +1358,7 @@ export function ModalidadeForm({ modalidade }: ModalidadeFormProps) {
               nomeGenerico: String(form.med_nomeGenerico || detalhesOriginal?.nomeGenerico || ""),
               fabricante: String(form.med_fabricante || detalhesOriginal?.fabricante || ""),
               lote: String(form.med_lote || detalhesOriginal?.lote || ""),
-              validade: null, // Não tem campo no form
+              validade: toDateOnly(form.med_validade || detalhesOriginal?.validade),
               acaoAdotada: String(form.med_acaoAdotada || detalhesOriginal?.acaoAdotada || ""),
               medProvavelCausador: simNaoParaBoolean(form.med_provavelCausador || (detalhesOriginal?.medProvavelCausador ? "Sim" : "Não")),
               posologia: String(form.med_posologia || detalhesOriginal?.posologia || ""),
