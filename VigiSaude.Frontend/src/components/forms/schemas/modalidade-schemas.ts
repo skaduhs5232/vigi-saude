@@ -115,7 +115,7 @@ export const schemas: Record<string, ModalidadeSchema> = {
       {
         id: "usoMedicamentosSNC",
         type: "radio",
-        label: "Uso de medicamentos SNC",
+        label: "Uso de medicamentos SNC (se sim, especificar abaixo)",
         required: true,
         options: ["Sim", "Não"],
       },
